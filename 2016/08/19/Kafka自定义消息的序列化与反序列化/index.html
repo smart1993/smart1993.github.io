@@ -68,7 +68,7 @@
 <link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="生活,电竞," />
+  <meta name="keywords" content="kafka," />
 
 
 
@@ -84,25 +84,24 @@
 
 
 
-<meta name="description" content="今天，TI6的总决赛在西雅图的贝纳罗亚音乐厅举行，wings用完美的表现击败了北美的DC战队、我从凌晨1:30开始一直在OB的解说房间关注着比赛，先是败者组的决赛，DC用强大的实力和丰富灵活的战术淘汰了卫冕冠军EG战队。总决赛拖拖拉拉一直到将近6点才开始。wings将野路子进行到底，四场比赛阵容完全不同，总共上场了18个英雄，印象里只有虚空和神谕出场了两次，第一把还玩起了屠夫，虽然玩嗨了第">
+<meta name="description" content="序言：我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。
+1. producer端序列化JavaBean并发送">
 <meta property="og:type" content="article">
-<meta property="og:title" content="写在TI6 Wings夺冠后">
-<meta property="og:url" content="https://github.com/smart1993.github.io/2016/08/14/写在TI6-Wings夺冠后/index.html">
+<meta property="og:title" content="Kafka自定义消息的序列化与反序列化">
+<meta property="og:url" content="https://github.com/smart1993.github.io/2016/08/19/Kafka自定义消息的序列化与反序列化/index.html">
 <meta property="og:site_name" content="Smart's Blog">
-<meta property="og:description" content="今天，TI6的总决赛在西雅图的贝纳罗亚音乐厅举行，wings用完美的表现击败了北美的DC战队、我从凌晨1:30开始一直在OB的解说房间关注着比赛，先是败者组的决赛，DC用强大的实力和丰富灵活的战术淘汰了卫冕冠军EG战队。总决赛拖拖拉拉一直到将近6点才开始。wings将野路子进行到底，四场比赛阵容完全不同，总共上场了18个英雄，印象里只有虚空和神谕出场了两次，第一把还玩起了屠夫，虽然玩嗨了第">
-<meta property="og:image" content="https://smart1993.github.io/imgs/0.PNG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/1.PNG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/imgs/2.PNG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/3.PNG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/4.PNG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/5.JPG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/7.JPG">
-<meta property="og:image" content="https://smart1993.github.io/imgs/6.JPG">
-<meta property="og:updated_time" content="2016-08-15T14:59:37.090Z">
+<meta property="og:description" content="序言：我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。
+1. producer端序列化JavaBean并发送">
+<meta property="og:image" content="http://i.imgur.com/wJnXtDZ.png">
+<meta property="og:image" content="http://i.imgur.com/eC38ss7.png">
+<meta property="og:image" content="http://i.imgur.com/YblLM9t.png">
+<meta property="og:image" content="http://i.imgur.com/6uIT3aS.png">
+<meta property="og:updated_time" content="2016-08-19T14:56:31.449Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="写在TI6 Wings夺冠后">
-<meta name="twitter:description" content="今天，TI6的总决赛在西雅图的贝纳罗亚音乐厅举行，wings用完美的表现击败了北美的DC战队、我从凌晨1:30开始一直在OB的解说房间关注着比赛，先是败者组的决赛，DC用强大的实力和丰富灵活的战术淘汰了卫冕冠军EG战队。总决赛拖拖拉拉一直到将近6点才开始。wings将野路子进行到底，四场比赛阵容完全不同，总共上场了18个英雄，印象里只有虚空和神谕出场了两次，第一把还玩起了屠夫，虽然玩嗨了第">
-<meta name="twitter:image" content="https://smart1993.github.io/imgs/0.PNG">
+<meta name="twitter:title" content="Kafka自定义消息的序列化与反序列化">
+<meta name="twitter:description" content="序言：我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。
+1. producer端序列化JavaBean并发送">
+<meta name="twitter:image" content="http://i.imgur.com/wJnXtDZ.png">
 
 
 
@@ -120,7 +119,7 @@
   };
 </script>
 
-  <title> 写在TI6 Wings夺冠后 | Smart's Blog </title>
+  <title> Kafka自定义消息的序列化与反序列化 | Smart's Blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -250,7 +249,7 @@
             
             
               
-                写在TI6 Wings夺冠后
+                Kafka自定义消息的序列化与反序列化
               
             
           </h1>
@@ -262,8 +261,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-14T21:39:48+08:00" content="2016-08-14">
-              2016-08-14
+            <time itemprop="dateCreated" datetime="2016-08-19T22:50:45+08:00" content="2016-08-19">
+              2016-08-19
             </time>
           </span>
 
@@ -276,8 +275,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/生活/" itemprop="url" rel="index">
-                    <span itemprop="name">生活</span>
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
                   </a>
                 </span>
 
@@ -309,10 +308,14 @@
       
 
       
-        <p></p><p>    今天，TI6的总决赛在西雅图的贝纳罗亚音乐厅举行，wings用完美的表现击败了北美的DC战队、我从凌晨1:30开始一直在OB的解说房间关注着比赛，先是败者组的决赛，DC用强大的实力和丰富灵活的战术淘汰了卫冕冠军EG战队。总决赛拖拖拉拉一直到将近6点才开始。wings将野路子进行到底，四场比赛阵容完全不同，总共上场了18个英雄，印象里只有虚空和神谕出场了两次，第一把还玩起了屠夫，虽然玩嗨了第一把送了，但是后面三把越打越强，特别是第三把的一号位虚空，20杀0死17助的数据，无限被动晕，神挡杀神，佛当杀佛，追着对面pom和伐木机杀，杀红了眼还杀了自家的小强2次（冰龙大。。。）,最后一把拿出四保一的敌法阵容，靠着超强的团战和执行力，几波完美团追着DC一顿锤，看得我热血沸腾，特别是最后wings五人杀上DC的高地，五个人的气势势不可挡，打的DC落花流水，在DC的小鱼、pom和伐木机买活死后，打出GG，在OB众人的呐喊声和全场观众山呼海啸的wings的呼喊声中，wings终于赢得了冠军！</p><br><a id="more"></a><p></p>
-<p></p><p>    这是我看的第五届TI了，从当年TI2的IG败者组一路杀回打破navi神话夺冠，到ti3的中国军团雪崩和NV的世纪大战，ti4没什么印象~~~，以及TI5在杭州线下巨幕见证sumail封神蓝猫夺冠，每年夏天熬夜关注TI也成了我青春的一段热血回忆。今年我也结束了学生生涯，走上了工作岗位，成为了一名大数据工程师，TI6也许会是我看的最后一届TI了，这段时光多年后想起应该也会很热血吧。</p><p></p>
-<p></p><p>    最后放几张图片纪念一下这个热血的夜晚。</p><br><img src="https://smart1993.github.io/imgs/0.PNG"><br><img src="https://smart1993.github.io/imgs/1.PNG"><br><img src="https://smart1993.github.io/imgs/imgs/2.PNG"><br><img src="https://smart1993.github.io/imgs/3.PNG"><br><img src="https://smart1993.github.io/imgs/4.PNG"><br><img src="https://smart1993.github.io/imgs/5.JPG">   <p></p>
-<p></p><p>    还有当年TI2和TI4那另人怀念的10个人。</p><br><img src="https://smart1993.github.io/imgs/7.JPG"><br><img src="https://smart1993.github.io/imgs/6.JPG"><p></p>
+        <p><strong>序言：</strong><br>我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。</p>
+<p><strong>1. producer端序列化JavaBean并发送</strong></p>
+<p>这是一个简单的kafka的producer的demo，与平常我们使用的demo不同，producer的config中的value.serializer参数的值我们配置为我们自己定义的序列化类WritableBeanSerializer。<br><img src="http://i.imgur.com/wJnXtDZ.png" alt=""><br>WritableBeanSerializer是我们自定义WritableBean的序列化类，这个类实现了kafka客户端的Serializer接口，通过实现其中的serialize方法，对WritableBean进行序列化。<br><img src="http://i.imgur.com/eC38ss7.png" alt=""><br>对象的序列化操作就是将对象序列化成一个byte数组，即字节流的形式，这里我们利用Alibaba的fastJson实现，也可以使用其他的序列化框架或者自己实现序列化过程。</p>
+<p><strong>2.consumer端消费数据并反序列化</strong></p>
+<p><img src="http://i.imgur.com/YblLM9t.png" alt=""></p>
+<p>这是kafka的cosumer端的实现，与之前producer端一样，将value.deserializer参数配为我们自已定义的反序列化类WritableBeanSerializer，同时我们定义的KafkaConsumer和ConsumerRecords类内的value要定义为WritableBean类型，即这两行代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">KafkaConsumer&lt;String,WritableBean&gt; consumer = new KafkaConsumer&lt;&gt;(props2)；</div><div class="line">ConsumerRecord&lt;String,WritableBean&gt; record；</div></pre></td></tr></table></figure></p>
+<p>以下是WritableBeanSerializer类的代码，实现Deserializer接口中的deserialize方法，同样也是使用fastJson进行反序列化，这个方法的返回类型可以由我们自己定义，因此我们直接定义为WritableBean类型。<br><img src="http://i.imgur.com/6uIT3aS.png" alt=""></p>
+<p>最后需要注意的一点的是被序列化和反序列化的JavaBean一定要有默认的构造方法！</p>
 
       
     </div>
@@ -334,9 +337,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/生活/" rel="tag">#生活</a>
-          
-            <a href="/tags/电竞/" rel="tag">#电竞</a>
+            <a href="/tags/kafka/" rel="tag">#kafka</a>
           
         </div>
       
@@ -345,13 +346,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2016/08/14/关于我/" rel="next" title="关于我">
+                <i class="fa fa-chevron-left"></i> 关于我
+              </a>
+            
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/08/14/关于我/" rel="prev" title="关于我">
-                关于我 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
