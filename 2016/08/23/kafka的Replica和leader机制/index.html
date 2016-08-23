@@ -84,20 +84,20 @@
 
 
 
-<meta name="description" content="##1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Repli">
+<meta name="description" content="1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica">
 <meta property="og:type" content="article">
 <meta property="og:title" content="kafka的Replica和leader机制">
 <meta property="og:url" content="https://github.com/smart1993.github.io/2016/08/23/kafka的Replica和leader机制/index.html">
 <meta property="og:site_name" content="Smart's Blog">
-<meta property="og:description" content="##1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Repli">
+<meta property="og:description" content="1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica">
 <meta property="og:image" content="http://i.imgur.com/2NuIeYN.png">
 <meta property="og:image" content="http://i.imgur.com/edtMpFw.png">
 <meta property="og:image" content="http://i.imgur.com/FtbCL0a.png">
 <meta property="og:image" content="http://i.imgur.com/QrnksVQ.png">
-<meta property="og:updated_time" content="2016-08-23T15:20:25.623Z">
+<meta property="og:updated_time" content="2016-08-23T15:32:17.096Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="kafka的Replica和leader机制">
-<meta name="twitter:description" content="##1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Repli">
+<meta name="twitter:description" content="1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica">
 <meta name="twitter:image" content="http://i.imgur.com/2NuIeYN.png">
 
 
@@ -305,8 +305,8 @@
       
 
       
-        <p>##1、Replica和leader的关系<br>  &#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica进行通信，就需要保证所有Replica之间互相不断同步数据，此时的通信链路为N’<em>N条，无法保证数据的一致性和有序性。而leader机制下，通信链路为N\</em>1条，系统更加简单和高效。<br><a id="more"></a></p>
-<p>##2、Replica在集群内的分布<br>Kafka分配Replica的算法如下：</p>
+        <h4 id="1、Replica和leader的关系"><a href="#1、Replica和leader的关系" class="headerlink" title="1、Replica和leader的关系"></a><strong>1、Replica和leader的关系</strong></h4><p>  &#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica进行通信，就需要保证所有Replica之间互相不断同步数据，此时的通信链路为N*N条，无法保证数据的一致性和有序性。而leader机制下，通信链路为N*1条，系统更加简单和高效。<br><a id="more"></a></p>
+<h4 id="2、Replica在集群内的分布"><a href="#2、Replica在集群内的分布" class="headerlink" title="2、Replica在集群内的分布"></a><strong>2、Replica在集群内的分布</strong></h4><p>Kafka分配Replica的算法如下：</p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;将所有Broker（假设共n个Broker）和待分配的Partition排序<br>将第i个Partition分配到第（i mod n）个Broker上<br>将第i个Partition的第j个Replica分配到第（(i + j) mode n）个Broker<br>下面在一个节点数为3的集群内测试，创建一个名为topic_test的topic，Partition数为10，Replica数为3，在kafka-mananger查看其分布情况如下:<br><img src="http://i.imgur.com/2NuIeYN.png" alt=""></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;从图中可以看出，kafka从每个分区的三个Replica中选出了一个leader，同时，三个Replica均匀的分布在不同的节点上。接下来我们把其中几个结点给kill掉，看看之后kafka集群会进行什么操作：</p>
 <p><img src="http://i.imgur.com/edtMpFw.png" alt=""></p>
@@ -314,7 +314,7 @@
 <p>此外如果出现leader分布不均匀的情况，我们需要手动重新进行分区的分配，如以下这种情况：</p>
 <p><img src="http://i.imgur.com/FtbCL0a.png" alt=""></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;所有分区的leader都是3号结点，这样会造成客户端与kafka通信时，只和3号结点进行通信，同时所有Replica也从3号结点不断fetch数据，系统的所有压力都汇聚的3号结点上。这时，可以在kafka-manager通过点击Generate Partition Assignment和Reassign Partition，重新分配Partition，并选举新的leader。</p>
-<p>##3、leader的选举<br> &#160;&#160;&#160;&#160;&#160;&#160;&#160;Kafka在Zookeeper中动态维护了一个ISR（in-sync replicas），这个ISR里的所有Replica都跟上了leader，只有ISR里的成员才有被选为Leader的可能，如果一个follower宕机，kafka就会把它从ISR列表中移除，follower是否存活的session时长由server.properties中的replica.lag.time.max.ms值来决定，来判断follower是否存活。在这种模式下，对于n+1个Replica，一个Partition能在保证不丢失已经commit的消息的前提下容忍n个Replica的失败。查看zookeeper下相关的结点信息如下图：</p>
+<h4 id="3、leader的选举"><a href="#3、leader的选举" class="headerlink" title="3、leader的选举"></a><strong>3、leader的选举</strong></h4><p> &#160;&#160;&#160;&#160;&#160;&#160;&#160;Kafka在Zookeeper中动态维护了一个ISR（in-sync replicas），这个ISR里的所有Replica都跟上了leader，只有ISR里的成员才有被选为Leader的可能，如果一个follower宕机，kafka就会把它从ISR列表中移除，follower是否存活的session时长由server.properties中的replica.lag.time.max.ms值来决定，来判断follower是否存活。在这种模式下，对于n+1个Replica，一个Partition能在保证不丢失已经commit的消息的前提下容忍n个Replica的失败。查看zookeeper下相关的结点信息如下图：</p>
 <p><img src="http://i.imgur.com/QrnksVQ.png" alt=""></p>
 <p>图中是Partition0的当前state信息，可以看到zk中记录了当前的leader信息和isr列表信息。<br>注：kafka的leader和replica通过controller来控制，具体实现细节需阅读controller相关源码后再分析。</p>
 
@@ -478,7 +478,7 @@
               
             
             
-              <p class="post-toc-empty">此文章未包含目录</p>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、Replica和leader的关系"><span class="nav-number">1.</span> <span class="nav-text">1、Replica和leader的关系</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2、Replica在集群内的分布"><span class="nav-number">2.</span> <span class="nav-text">2、Replica在集群内的分布</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3、leader的选举"><span class="nav-number">3.</span> <span class="nav-text">3、leader的选举</span></a></li></ol></div>
             
           </div>
         </section>

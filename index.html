@@ -305,7 +305,7 @@
 
       
         
-          <p>##1、Replica和leader的关系<br>  &#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica进行通信，就需要保证所有Replica之间互相不断同步数据，此时的通信链路为N’<em>N条，无法保证数据的一致性和有序性。而leader机制下，通信链路为N\</em>1条，系统更加简单和高效。<br>
+          <h4 id="1、Replica和leader的关系"><a href="#1、Replica和leader的关系" class="headerlink" title="1、Replica和leader的关系"></a><strong>1、Replica和leader的关系</strong></h4><p>  &#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica进行通信，就需要保证所有Replica之间互相不断同步数据，此时的通信链路为N*N条，无法保证数据的一致性和有序性。而leader机制下，通信链路为N*1条，系统更加简单和高效。<br>
           <div class="post-more-link text-center">
             <a class="btn" href="/2016/08/23/kafka的Replica和leader机制/#more" rel="contents">
               阅读全文 &raquo;
