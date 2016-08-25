@@ -1,0 +1,622 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="zookeeper,java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="序言：我们知道在多线程环境中，线程对于资源的竞争和共享十分激烈，开发者需要设计合理的锁机制来控制线程对于资源的访问。而在分布式集群系统中，资源的访问对象则很有可能是多个进程(多台机器)，我们需要一种锁机制来实现对分布式的进程的资源访问控制，这种锁机制叫做分布式锁，而实现分布式锁，最常用的方法是借助zookeeper实现。假设我们的分布式应用部署在集群内的10台机器上，而这10台机器上的应用需要对同">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java通过zookeeper实现分布式锁">
+<meta property="og:url" content="https://github.com/smart1993.github.io/2016/08/26/java通过zookeeper实现分布式锁/index.html">
+<meta property="og:site_name" content="Smart's Blog">
+<meta property="og:description" content="序言：我们知道在多线程环境中，线程对于资源的竞争和共享十分激烈，开发者需要设计合理的锁机制来控制线程对于资源的访问。而在分布式集群系统中，资源的访问对象则很有可能是多个进程(多台机器)，我们需要一种锁机制来实现对分布式的进程的资源访问控制，这种锁机制叫做分布式锁，而实现分布式锁，最常用的方法是借助zookeeper实现。假设我们的分布式应用部署在集群内的10台机器上，而这10台机器上的应用需要对同">
+<meta property="og:image" content="http://i.imgur.com/ioXrSUg.png">
+<meta property="og:image" content="http://i.imgur.com/Rly6wL9.png">
+<meta property="og:image" content="http://i.imgur.com/76MARZx.png">
+<meta property="og:updated_time" content="2016-08-25T16:31:21.824Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java通过zookeeper实现分布式锁">
+<meta name="twitter:description" content="序言：我们知道在多线程环境中，线程对于资源的竞争和共享十分激烈，开发者需要设计合理的锁机制来控制线程对于资源的访问。而在分布式集群系统中，资源的访问对象则很有可能是多个进程(多台机器)，我们需要一种锁机制来实现对分布式的进程的资源访问控制，这种锁机制叫做分布式锁，而实现分布式锁，最常用的方法是借助zookeeper实现。假设我们的分布式应用部署在集群内的10台机器上，而这10台机器上的应用需要对同">
+<meta name="twitter:image" content="http://i.imgur.com/ioXrSUg.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> java通过zookeeper实现分布式锁 | Smart's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Smart's Blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                java通过zookeeper实现分布式锁
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-26T00:21:15+08:00" content="2016-08-26">
+              2016-08-26
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/zookeeper/" itemprop="url" rel="index">
+                    <span itemprop="name">zookeeper</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/zookeeper/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><strong>序言：</strong><br>我们知道在多线程环境中，线程对于资源的竞争和共享十分激烈，开发者需要设计合理的锁机制来控制线程对于资源的访问。而在分布式集群系统中，资源的访问对象则很有可能是多个进程(多台机器)，我们需要一种锁机制来实现对分布式的进程的资源访问控制，这种锁机制叫做分布式锁，而实现分布式锁，最常用的方法是借助zookeeper实现。假设我们的分布式应用部署在集群内的10台机器上，而这10台机器上的应用需要对同一个redis实例内的一个key进行读写操作，我们看看如何借助zookeeper的分布式锁实现资源读写的原子性。业务场景的流程图如下：<br><a id="more"></a></p>
+<p><div align="center"><br><img src="http://i.imgur.com/ioXrSUg.png" alt=""><br></div></p>
+<h4 id="1、利用zookeeper创建分布式共享锁"><a href="#1、利用zookeeper创建分布式共享锁" class="headerlink" title="1、利用zookeeper创建分布式共享锁"></a>1、利用zookeeper创建分布式共享锁</h4><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们在zookeeper中先创建一个节点目录为：/zk_lock/etl_lock目录，应用程序在获取锁之前，都需要在这个目录下创建一个临时节点(节点类型为EPHEMERAL_SEQUENTIAL，临时自增序列节点，保证节点名称的唯一性)，进行读操作时创建的节点的名称为：lock-r-自增序号，写操作时名称为lock-w-自增序号，如下图：</p>
+<p><img src="http://i.imgur.com/Rly6wL9.png" alt=""></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这里面的每一个叶子节点代表的都是一个客户端进程的读或写请求操作，节点排序的先后代表的是请求操作的先后顺序，客户端程序获取到这个List列表，判断当前List与自身的节点信息是否满足一定的条件，如果满足就获得锁，如果不满足，则进入等待。</p>
+<h4 id="2、java客户端的分布式锁机制实现"><a href="#2、java客户端的分布式锁机制实现" class="headerlink" title="2、java客户端的分布式锁机制实现"></a>2、java客户端的分布式锁机制实现</h4><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;java客户端通过readLock()和writeLock()实现了读锁和写锁两种锁，调用这两个方法时，都先在zookeeper的/zk_lock/etl_lock目录下创建一个属于当前进程独有的子节点，之后进入while循环，判断是否符合获得锁的条件，但while循环内并不是做轮询操作，而是通过zookeeper的Watcher向zookeeper注册一个监听事件，当zookeeper的/zk_lock/etl_lock目录下的节点发生删除节点操作时，会回调Watcher类内的process方法，通知java客户端zookeeper锁目录下的节点列表发生变动，java客户端再去获取新的节点列表，并判断自己是否符合获取锁的条件。同时，客户端轮询机制的等待与唤醒操作通过CountDownLatch类实现。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">    * 读锁</div><div class="line">    * <span class="doctag">@return</span></div><div class="line">    */</div><div class="line">   <span class="function"><span class="keyword">public</span> String <span class="title">readLock</span><span class="params">()</span></span>&#123;</div><div class="line">       String path;</div><div class="line">       List&lt;String&gt; nodeList;</div><div class="line">       String firstNodeName;</div><div class="line">       String nodePath = <span class="string">"/zk_lock/etl_lock"</span>;</div><div class="line">       String firstNodePath;</div><div class="line">       <span class="keyword">int</span> nodeId=-<span class="number">1</span>;</div><div class="line">       path = createNode(zkReadLock,<span class="string">""</span>,ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);</div><div class="line">       <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</div><div class="line">           <span class="comment">/**</span></div><div class="line">            * 获取读锁的两个条件：</div><div class="line">            * 1、自己处于nodeList的第一个位置</div><div class="line">            * 或</div><div class="line">            * 2、nodeList中排在自己之后的节点都是读操作</div><div class="line">            */</div><div class="line">           nodeList = getChildren(nodePath);</div><div class="line">           firstNodeName = nodeList.get(<span class="number">0</span>);</div><div class="line">           firstNodePath = nodePath+<span class="string">"/"</span>+firstNodeName;</div><div class="line">           <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;nodeList.size();i++)&#123;</div><div class="line">               nodePath = nodePath+nodeList.get(i);</div><div class="line">               <span class="keyword">if</span>(nodePath.equals(path))&#123;</div><div class="line">                   nodeId = i;<span class="comment">//获取自己在列表中的位置</span></div><div class="line">               &#125;</div><div class="line">           &#125;</div><div class="line">           <span class="keyword">if</span> (firstNodePath.equals(path)) &#123;</div><div class="line">               lockSemaphore = <span class="keyword">new</span> CountDownLatch(<span class="number">1</span>);</div><div class="line">               <span class="keyword">return</span> path;</div><div class="line">           &#125; <span class="keyword">else</span> &#123;</div><div class="line">               <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;nodeId;i++)&#123;</div><div class="line">                   <span class="comment">//如果比自己序号小的子节点有写请求，则等待锁</span></div><div class="line">                   <span class="keyword">if</span>(nodeList.get(i).contains(<span class="string">"w"</span>)) &#123;</div><div class="line">                       <span class="keyword">try</span> &#123;</div><div class="line">                           lockSemaphore.await();</div><div class="line">                           <span class="keyword">continue</span>;</div><div class="line">                       &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                           e.printStackTrace();</div><div class="line">                       &#125;</div><div class="line">                   &#125;</div><div class="line">               &#125;</div><div class="line">               lockSemaphore = <span class="keyword">new</span> CountDownLatch(<span class="number">1</span>);</div><div class="line">               <span class="keyword">return</span> path;</div><div class="line">           &#125;</div><div class="line">       &#125;</div><div class="line">   &#125;</div></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * 写锁</div><div class="line"> * <span class="doctag">@return</span></div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">writeLock</span><span class="params">()</span></span>&#123;</div><div class="line">    String path;</div><div class="line">    List&lt;String&gt; nodeList;</div><div class="line">    String nodePath = <span class="string">"/zk_lock/etl_lock"</span>;</div><div class="line">    String firstNodePath;</div><div class="line">    String firstNodeName;</div><div class="line">    <span class="keyword">int</span> nodeId = -<span class="number">1</span>;</div><div class="line">    path = createNode(zkWriteLock,<span class="string">""</span>,ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);</div><div class="line">    <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</div><div class="line">        <span class="comment">/**</span></div><div class="line">         * 获取写锁的条件：</div><div class="line">         * 1、自己处于nodeList的第一个位置</div><div class="line">         * 2、nodeList中排在自己之前的节点没有写操作</div><div class="line">         */</div><div class="line">        nodeList = getChildren(nodePath);</div><div class="line">        firstNodeName = nodeList.get(<span class="number">0</span>);</div><div class="line">        firstNodePath = nodePath+<span class="string">"/"</span>+firstNodeName;</div><div class="line">        <span class="keyword">if</span> (firstNodePath.equals(path)) &#123;</div><div class="line">            lockSemaphore = <span class="keyword">new</span> CountDownLatch(<span class="number">1</span>);</div><div class="line">            <span class="keyword">return</span> path;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nodeList.size(); i++) &#123;</div><div class="line">                nodePath = nodePath + nodeList.get(i);</div><div class="line">                <span class="keyword">if</span> (nodePath.equals(path)) &#123;</div><div class="line">                    nodeId = i;<span class="comment">//获取自己在列表中的位置</span></div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nodeId; i++) &#123;</div><div class="line">                <span class="comment">//如果比自己序号小的子节点有写请求，则等待锁</span></div><div class="line">                <span class="keyword">if</span> (nodeList.get(i).contains(<span class="string">"w"</span>)) &#123;</div><div class="line">                    <span class="keyword">try</span> &#123;</div><div class="line">                        lockSemaphore.await();</div><div class="line">                        <span class="keyword">continue</span>;</div><div class="line">                    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                        e.printStackTrace();</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            lockSemaphore = <span class="keyword">new</span> CountDownLatch(<span class="number">1</span>);</div><div class="line">            <span class="keyword">return</span> path;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">   * zookeeper事件监听器</div><div class="line">   */</div><div class="line">  <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ZkWatcher</span> <span class="keyword">implements</span> <span class="title">Watcher</span></span>&#123;</div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">process</span><span class="params">(WatchedEvent watchedEvent)</span> </span>&#123;</div><div class="line">          <span class="keyword">if</span>(watchedEvent.getState() == Event.KeeperState.SyncConnected)&#123;</div><div class="line">              logs = <span class="keyword">new</span> LogInfoGroup();</div><div class="line">              logs.info(<span class="string">"建立zookeeper连接成功!"</span>);</div><div class="line">              logger.logInfos(logs);</div><div class="line">              connectedSemaphore.countDown();</div><div class="line">          &#125;</div><div class="line">          <span class="keyword">if</span>(watchedEvent.getType() == Event.EventType.NodeDeleted)&#123;</div><div class="line">              lockSemaphore.countDown();</div><div class="line">          &#125;</div><div class="line">      &#125;</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<p>我们通过一个简单的多线程测试任务来分布式多进程环境下的读写操作情况：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ZkTest</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> ZkUtil zkUtil = <span class="keyword">new</span> ZkUtil();</div><div class="line">    <span class="keyword">static</span> <span class="keyword">int</span>  num =<span class="number">0</span> ;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span>  <span class="keyword">void</span> <span class="title">main</span><span class="params">(String args[])</span> <span class="keyword">throws</span> IOException, KeeperException, InterruptedException </span>&#123;</div><div class="line">        zkUtil.connector(Config.getInstance().getProperty(<span class="string">"ZK_URL"</span>),<span class="number">30000</span>);</div><div class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;<span class="number">5</span>;i++)&#123;</div><div class="line">            Thread thread1 = <span class="keyword">new</span> Thread(<span class="keyword">new</span> WriteThread());</div><div class="line">            Thread thread2 = <span class="keyword">new</span> Thread(<span class="keyword">new</span> ReadThread());</div><div class="line">            thread1.start();</div><div class="line">            thread2.start();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">ReadThread</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;<span class="number">5</span>;i++) &#123;</div><div class="line">                String path = zkUtil.readLock();</div><div class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">":读操作,num:"</span> + num);</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    Thread.sleep(<span class="number">1000L</span>);</div><div class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                    e.printStackTrace();</div><div class="line">                &#125;</div><div class="line">                zkUtil.deleteNode(path);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">WriteThread</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">            <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;<span class="number">5</span>;i++) &#123;</div><div class="line">                String path = zkUtil.writeLock();</div><div class="line">                num++;</div><div class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">":写操作----&gt;num:"</span> + num);</div><div class="line">                zkUtil.deleteNode(path);</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    Thread.sleep(<span class="number">1000L</span>);</div><div class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                    e.printStackTrace();</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><div align="center"><br><img src="http://i.imgur.com/76MARZx.png" alt=""><br></div><br>可以看见，通过对读写操作的加锁操作，多个线程对同一变量(共享资源）的读写操作是原子性的。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/zookeeper/" rel="tag">#zookeeper</a>
+          
+            <a href="/tags/java/" rel="tag">#java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/23/kafka的Replica和leader机制/" rel="next" title="kafka的Replica和leader机制">
+                <i class="fa fa-chevron-left"></i> kafka的Replica和leader机制
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/avatar.JPG"
+               alt="smart" />
+          <p class="site-author-name" itemprop="name">smart</p>
+          <p class="site-description motion-element" itemprop="description">在生活中追逐梦想</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">5</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/smart1993" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、利用zookeeper创建分布式共享锁"><span class="nav-number">1.</span> <span class="nav-text">1、利用zookeeper创建分布式共享锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2、java客户端的分布式锁机制实现"><span class="nav-number">2.</span> <span class="nav-text">2、java客户端的分布式锁机制实现</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">smart</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+  
+  
+  
+
+  
+
+  
+
+</body>
+</html>
