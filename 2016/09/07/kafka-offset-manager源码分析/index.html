@@ -85,19 +85,19 @@
 
 
 <meta name="description" content="hljs.initHighlightingOnLoad();
-1、序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到of">
+序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offs">
 <meta property="og:type" content="article">
 <meta property="og:title" content="kafka_offset_manager源码分析">
 <meta property="og:url" content="https://github.com/smart1993.github.io/2016/09/07/kafka-offset-manager源码分析/index.html">
 <meta property="og:site_name" content="Smart's Blog">
 <meta property="og:description" content="hljs.initHighlightingOnLoad();
-1、序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到of">
+序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offs">
 <meta property="og:image" content="http://smart1993.github.io/imgs/kafka_offset_manager.jpg">
-<meta property="og:updated_time" content="2016-09-07T06:07:43.000Z">
+<meta property="og:updated_time" content="2016-09-07T06:39:00.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="kafka_offset_manager源码分析">
 <meta name="twitter:description" content="hljs.initHighlightingOnLoad();
-1、序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到of">
+序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offs">
 <meta name="twitter:image" content="http://smart1993.github.io/imgs/kafka_offset_manager.jpg">
 
 
@@ -305,286 +305,39 @@
       
 
       
-        <p><link rel="stylesheet" href="/path/to/styles/default.css"></p>
-<p><script src="/path/to/highlight.pack.js"></script></p>
+        <p><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/default.min.css"></p>
+<p><script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script></p>
 <p><script>hljs.initHighlightingOnLoad();</script></p>
-<h3 id="1、序言"><a href="#1、序言" class="headerlink" title="1、序言"></a><strong><strong>1、序言</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offset=100所属的index文件，然后从该文件内找到offset=100的值，再通过这个值找到所需获取的数据在日志文件的具体位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafka提供了一套较为可用的offset管理机制，包括offset commit、offset reset、offset存储等功能。下面我们从kafka相关部分的源码对offset manager做分析。<br><a id="more"></a></p>
-<h3 id="2、offset-commit"><a href="#2、offset-commit" class="headerlink" title="2、offset commit"></a><strong><strong>2、offset commit</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka consumer客户端会定时的提交自己当前的消费偏移量，以确保不会重复消费数据，客户端通过发送OffsetCommitRequest完成。而kafka server通过handleOffsetCommitRequest方法接收该请求，并对请求进行相应的处理，最后发送sendResponseCallback作为结果供consumer客户端的回调函数处理。接下来我们从java客户端和server端两个方面的源码详细分析offset commit的处理过程与相应机制。</p>
-<h5 id="2-1-server端源码"><a href="#2-1-server端源码" class="headerlink" title="**2.1.server端源码**"></a><strong>**</strong>2.1.server端源码<strong>**</strong></h5><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;下面这张图是kafka server端执行offset Commit请求的完整的流程图，kafka接收offset commit请求，然后调用相应的方法处理请求，如果offset的存储策略是存储于kafka的内部topic，就将请求内包含的offset信息append到kafka管理offset的内部topic对应的log文件内，最后返回一个response callback给客户端，表示处理结果。下面我们根据这张图，一步一步的分析下去。</p>
+<h3 id="序言"><a href="#序言" class="headerlink" title="序言"></a><strong><strong>序言</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offset=100所属的index文件，然后从该文件内找到offset=100的值，再通过这个值找到所需获取的数据在日志文件的具体位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafka提供了一套较为可用的offset管理机制，包括offset commit、offset reset、offset存储等功能。下面我们从kafka相关部分的源码对offset manager做分析。<br><a id="more"></a></p>
+<h3 id="offset-commit"><a href="#offset-commit" class="headerlink" title="offset commit"></a><strong><strong>offset commit</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka consumer客户端会定时的提交自己当前的消费偏移量，以确保不会重复消费数据，客户端通过发送OffsetCommitRequest完成。而kafka server通过handleOffsetCommitRequest方法接收该请求，并对请求进行相应的处理，最后发送sendResponseCallback作为结果供consumer客户端的回调函数处理。接下来我们从java客户端和server端两个方面的源码详细分析offset commit的处理过程与相应机制。</p>
+<h4 id="server端源码"><a href="#server端源码" class="headerlink" title="server端源码"></a>server端源码</h4><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;下面这张图是kafka server端执行offset Commit请求的完整的流程图，kafka接收offset commit请求，然后调用相应的方法处理请求，如果offset的存储策略是存储于kafka的内部topic，就将请求内包含的offset信息append到kafka管理offset的内部topic对应的log文件内，最后返回一个response callback给客户端，表示处理结果。下面我们根据这张图，一步一步的分析下去。</p>
 <p><img src="http://smart1993.github.io/imgs/kafka_offset_manager.jpg" alt="image"></p>
 <p><strong><strong>（1）KafkaApis.handleOffsetCommitRequest</strong></strong></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这是第一步，KafkaApis类的作用是kafka接收各类请求，然后调用对应的方法去处理这些请求，当接收到时offset commit请求时，就调用handleOffsetCommitRequest方法处理。该方法会从客户端请求内提取出partition和group信息，并将这些信息作为参数传入第二步的handleCommitOffsets方法去执行。</p>
 <p><strong><strong>注</strong></strong>：kafka会根据request.header中的apiVersion信息进行不同的处理。apiVersion=0表示offset存储于zookeeper中,否则表示offset存储于offset manager中(kafka的内部topic)。我们这里分析的是第二种情况，即内部topic。</p>
-<pre>
-<code>
-  val currentTimestamp = SystemTime.milliseconds
-  val defaultExpireTimestamp = offsetRetention + currentTimestamp
-  val partitionData = authorizedRequestInfo.mapValues { partitionData =>
-  val metadata = 
-  if (partitionData.metadata == null) 
-      OffsetMetadata.NoMetadata 
-  else 
-      partitionData.metadata;
-      new OffsetAndMetadata(
-          offsetMetadata = OffsetMetadata(partitionData.offset, metadata),
-          commitTimestamp = currentTimestamp,
-          expireTimestamp = {
-            if (partitionData.timestamp == OffsetCommitRequest.DEFAULT_TIMESTAMP)
-               defaultExpireTimestamp
-            else
-               offsetRetention + partitionData.timestamp
-           }
-        )
-      }
-
-    // call coordinator to handle commit offset
-    coordinator.handleCommitOffsets(
-       offsetCommitRequest.groupId,
-       offsetCommitRequest.memberId,
-       offsetCommitRequest.generationId,
-       partitionData,
-       sendResponseCallback)
-    }
-</code>
-</pre>
-
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">val</span> currentTimestamp = <span class="type">SystemTime</span>.milliseconds</div><div class="line"><span class="keyword">val</span> defaultExpireTimestamp = offsetRetention + currentTimestamp</div><div class="line"><span class="keyword">val</span> partitionData = authorizedRequestInfo.mapValues &#123; partitionData =&gt;</div><div class="line"><span class="keyword">val</span> metadata = </div><div class="line"><span class="keyword">if</span> (partitionData.metadata == <span class="literal">null</span>) </div><div class="line">	<span class="type">OffsetMetadata</span>.<span class="type">NoMetadata</span> </div><div class="line"><span class="keyword">else</span> </div><div class="line">	partitionData.metadata;</div><div class="line">    <span class="keyword">new</span> <span class="type">OffsetAndMetadata</span>(</div><div class="line">        offsetMetadata = <span class="type">OffsetMetadata</span>(partitionData.offset, metadata),</div><div class="line">        commitTimestamp = currentTimestamp,</div><div class="line">        expireTimestamp = &#123;</div><div class="line">          <span class="keyword">if</span> (partitionData.timestamp == <span class="type">OffsetCommitRequest</span>.<span class="type">DEFAULT_TIMESTAMP</span>)</div><div class="line">             defaultExpireTimestamp</div><div class="line">          <span class="keyword">else</span></div><div class="line">             offsetRetention + partitionData.timestamp</div><div class="line">         &#125;</div><div class="line">      )</div><div class="line">    &#125;</div><div class="line">  <span class="comment">// call coordinator to handle commit offset</span></div><div class="line">  coordinator.handleCommitOffsets(</div><div class="line">     offsetCommitRequest.groupId,</div><div class="line">     offsetCommitRequest.memberId,</div><div class="line">     offsetCommitRequest.generationId,</div><div class="line">     partitionData,</div><div class="line">     sendResponseCallback)</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
 <p><strong>（2）GroupCoordinator.handleCommitOffsets</strong></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;接下来看一下GroupCoordinator类的handleCommitOffsets方法的相关代码。该方法首先会校验Coordinator的状态和请求信息内的group信息，校验通过后进入下面这个else结构体内，</p>
-<pre>
-<code>
-else {
-    val member = group.get(memberId)
-    completeAndScheduleNextHeartbeatExpiration(group, member)
-    <strong>delayedOffsetStore = Some(groupManager.prepareStoreOffsets(groupId, memberId, generationId,offsetMetadata, responseCallback))</strong>
-    }
-</code>
-</pre>
-
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">val</span> member = group.get(memberId)</div><div class="line">    completeAndScheduleNextHeartbeatExpiration(group, member)</div><div class="line">    &lt;strong&gt;delayedOffsetStore = <span class="type">Some</span>(groupManager.prepareStoreOffsets(groupId, memberId, generationId,offsetMetadata, responseCallback))&lt;/strong&gt;</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;其中加粗的这一句是执行offset存储的关键语句，prepareStoreOffsets方法顾名思义，就是要做存储offset信息前的准备工作，具体做了哪些工作我们看一看prepareStoreOffsets方法内的代码：</p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;首先该方法对offsetMetadata进行过滤,过滤条件为size&lt;OffsetConfig.DefaultMaxMetadataSize=4096),然后遍历过滤所得的存储offsetMetadata的map，并将处理所得的key、value、timestamp等相关信息实例化一个Message类，并转换成一个序列，messages就是这个序列的引用。接着实例化一个TopicPartition对象。最后将TopicPartition对象和由messages序列生成的ByteBufferMessageSet对象做完键值对，得到一个Map，这个Map对象的名称是offsetTopicPartition。</p>
-<pre>
-<code>
-// first filter out partitions with offset metadata size exceeding limit
-    val filteredOffsetMetadata = offsetMetadata.filter { 
-        case (topicPartition, offsetAndMetadata) =>
-        validateOffsetMetadataLength(offsetAndMetadata.metadata)
-    }
-// construct the message set to append
-    val messages = filteredOffsetMetadata.map {
-        case (topicAndPartition, offsetAndMetadata) =>
-            val (magicValue, timestamp)=
-                getMessageFormatVersionAndTimestamp(partitionFor(groupId))
-      new Message(
-        key = GroupMetadataManager.offsetCommitKey(groupId,         topicAndPartition.topic, topicAndPartition.partition),
-        bytes = GroupMetadataManager.offsetCommitValue(offsetAndMetadata),
-        timestamp = timestamp,
-        magicValue = magicValue
-      )
-    }.toSeq
-  val offsetTopicPartition = new TopicPartition(
-                                      TopicConstants.GROUP_METADATA_TOPIC_NAME, 
-                                      partitionFor(groupId)
-                                      )
-  val offsetsAndMetadataMessageSet = Map(offsetTopicPartition ->
-  new ByteBufferMessageSet(config.offsetsTopicCompressionCodec, messages:_*))
-</code>
-</pre>
-
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;做完以上工作，该方法还定义了一个回调函数putCacheCallback，这个回调函数的作用是当offset相关信息被append到log文件之后，再将相关信息写入cache，写入cache的方法是GroupMetadataManager的putOffset方法，相关代码如下：</p>
-<pre>
-<code>
- /**
-   * Put the (already committed) offset for the given group/topic/partition into the cache.
-   *
-   * @param key The group-topic-partition
-   * @param offsetAndMetadata The offset/metadata to be stored
-   */
-  private def putOffset(key: GroupTopicPartition, offsetAndMetadata: OffsetAndMetadata) {
-    offsetsCache.put(key, offsetAndMetadata)
-  }
-</code>
-</pre>
-
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后，返回一个DelayedStore对象，参数就是之前生成的offsetTopicPartition对象和putCacheCallback回调函数。在GroupCoordinator.handleCommitOffsets方法的最后，将这个DelayedStore对象作为参数传入GroupMetadataManager.store方法中，代码如下：</p>
-<pre>
-<code>
-  delayedOffsetStore.foreach(groupManager.store)
-</code>
-</pre>
-
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;首先该方法对offsetMetadata进行过滤,过滤条件为size &lt; OffsetConfig.DefaultMaxMetadataSize=4096),然后遍历过滤所得的存储offsetMetadata的map，并将处理所得的key、value、timestamp等相关信息实例化一个Message类，并转换成一个序列，messages就是这个序列的引用。接着实例化一个TopicPartition对象。最后将TopicPartition对象和由messages序列生成的ByteBufferMessageSet对象做完键值对，得到一个Map，这个Map对象的名称是offsetTopicPartition。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// first filter out partitions with offset metadata size exceeding limit</span></div><div class="line">    <span class="keyword">val</span> filteredOffsetMetadata = offsetMetadata.filter &#123; </div><div class="line">    	<span class="keyword">case</span> (topicPartition, offsetAndMetadata) =&gt;</div><div class="line">        validateOffsetMetadataLength(offsetAndMetadata.metadata)</div><div class="line">    &#125;</div><div class="line"><span class="comment">// construct the message set to append</span></div><div class="line">    <span class="keyword">val</span> messages = filteredOffsetMetadata.map &#123;</div><div class="line">    	<span class="keyword">case</span> (topicAndPartition, offsetAndMetadata) =&gt;</div><div class="line">        	<span class="keyword">val</span> (magicValue, timestamp)=</div><div class="line">        		getMessageFormatVersionAndTimestamp(partitionFor(groupId))</div><div class="line">      <span class="keyword">new</span> <span class="type">Message</span>(</div><div class="line">        key = <span class="type">GroupMetadataManager</span>.offsetCommitKey(groupId, 		topicAndPartition.topic, topicAndPartition.partition),</div><div class="line">        bytes = <span class="type">GroupMetadataManager</span>.offsetCommitValue(offsetAndMetadata),</div><div class="line">        timestamp = timestamp,</div><div class="line">        magicValue = magicValue</div><div class="line">      )</div><div class="line">    &#125;.toSeq</div><div class="line">  <span class="keyword">val</span> offsetTopicPartition = <span class="keyword">new</span> <span class="type">TopicPartition</span>(</div><div class="line">  									<span class="type">TopicConstants</span>.<span class="type">GROUP_METADATA_TOPIC_NAME</span>, </div><div class="line">  									partitionFor(groupId)</div><div class="line">  									)</div><div class="line">  <span class="keyword">val</span> offsetsAndMetadataMessageSet = <span class="type">Map</span>(offsetTopicPartition -&gt;</div><div class="line">  <span class="keyword">new</span> <span class="type">ByteBufferMessageSet</span>(config.offsetsTopicCompressionCodec, messages:_*))</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;做完以上工作，该方法还定义了一个回调函数putCacheCallback，这个回调函数的作用是当offset相关信息被append到log文件之后，再将相关信息写入cache，写入cache的方法是GroupMetadataManager的putOffset方法，相关代码如下：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">  * Put the (already committed) offset for the given group/topic/partition into the cache.</div><div class="line">  *</div><div class="line">  * @param key The group-topic-partition</div><div class="line">  * @param offsetAndMetadata The offset/metadata to be stored</div><div class="line">  */</div><div class="line"> <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">putOffset</span></span>(key: <span class="type">GroupTopicPartition</span>, offsetAndMetadata: <span class="type">OffsetAndMetadata</span>) &#123;</div><div class="line">   offsetsCache.put(key, offsetAndMetadata)</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后，返回一个DelayedStore对象，参数就是之前生成的offsetTopicPartition对象和putCacheCallback回调函数。在GroupCoordinator.handleCommitOffsets方法的最后，将这个DelayedStore对象作为参数传入GroupMetadataManager.store方法中，代码如下：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">delayedOffsetStore.foreach(groupManager.store)</div></pre></td></tr></table></figure></p>
 <p><strong>（3）GroupMetadataManager.store</strong></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这个方法很简单，入参是之前prepareStoreOffsets方法生成的DelayedStore对象，然后调用appendMessages方法：</p>
-<pre>
-<code>
-def store(delayedAppend: DelayedStore) {
-   // call replica manager to append the group message
-   replicaManager.appendMessages(
-     config.offsetCommitTimeoutMs.toLong,
-     config.offsetCommitRequiredAcks,
-     true, // allow appending to internal offset topic
-     delayedAppend.messageSet,
-     delayedAppend.callback)
-  }
-</code>
-</pre>
-
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这个方法很简单，入参是之前prepareStoreOffsets方法生成的DelayedStore对象，然后调用appendMessages方法：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">store</span></span>(delayedAppend: <span class="type">DelayedStore</span>) &#123;</div><div class="line">   <span class="comment">// call replica manager to append the group message</span></div><div class="line">   replicaManager.appendMessages(</div><div class="line">     config.offsetCommitTimeoutMs.toLong,</div><div class="line">     config.offsetCommitRequiredAcks,</div><div class="line">     <span class="literal">true</span>, <span class="comment">// allow appending to internal offset topic</span></div><div class="line">     delayedAppend.messageSet,</div><div class="line">     delayedAppend.callback)</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
 <p><strong>（4）ReplicaManager.appendMessages</strong></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这个方法的作用是将offset信息append到分区的leader replicas，并等待信息被复制到其他replicas，当超时或收到满足条件的acks数时会调用之前入参的回调函数(delayedAppend.callback).</p>
-<pre>
-<code>
-   val sTime = SystemTime.milliseconds
-<strong>   val localProduceResults = appendToLocalLog(internalTopicsAllowed,
-                                                 messagesPerPartition,
-                                                 requiredAcks)</strong>
-   debug("Produce to local log in %d ms".format(SystemTime.milliseconds - sTime))
-   val produceStatus = localProduceResults.map { 
-   case (topicPartition, result) =>
-        topicPartition ->
-        ProducePartitionStatus(
-           result.info.lastOffset + 1, // required offset
-           new PartitionResponse(
-           result.errorCode, result.info.firstOffset, result.info.timestamp)
-           )
-      }
-</code>
-</pre>
-
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这个方法的作用是将offset信息append到分区的leader replicas，并等待信息被复制到其他replicas，当超时或收到满足条件的acks数时会调用之前入参的回调函数(delayedAppend.callback).<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">   <span class="keyword">val</span> sTime = <span class="type">SystemTime</span>.milliseconds</div><div class="line">&lt;strong&gt;   <span class="keyword">val</span> localProduceResults = appendToLocalLog(internalTopicsAllowed,</div><div class="line">   											  messagesPerPartition,</div><div class="line">   											  requiredAcks)&lt;/strong&gt;</div><div class="line">   debug(<span class="string">"Produce to local log in %d ms"</span>.format(<span class="type">SystemTime</span>.milliseconds - sTime))</div><div class="line">   <span class="keyword">val</span> produceStatus = localProduceResults.map &#123; </div><div class="line">   <span class="keyword">case</span> (topicPartition, result) =&gt;</div><div class="line">        topicPartition -&gt;</div><div class="line">        <span class="type">ProducePartitionStatus</span>(</div><div class="line">           result.info.lastOffset + <span class="number">1</span>, <span class="comment">// required offset</span></div><div class="line">           <span class="keyword">new</span> <span class="type">PartitionResponse</span>(</div><div class="line">           result.errorCode, result.info.firstOffset, result.info.timestamp)</div><div class="line">           )</div><div class="line">      &#125;</div></pre></td></tr></table></figure></p>
 <p><strong>（5）ReplicaManager.appendToLocalLog</strong></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;appendToLocalLog方法内会调用partition.appendMessagesToLeader方法将offset信息append到kafka管理offset的内部topic的leader对应的本地的log文件内。</p>
-<pre>
-<code>
-try {
-     val partitionOpt = getPartition(topicPartition.topic,
-                                       topicPartition.partition)
-     val info = partitionOpt match {
-            case Some(partition) =>
-                 <strong>partition.appendMessagesToLeader(
-                     messages.asInstanceOf[ByteBufferMessageSet], 
-                     requiredAcks
-                     )</strong>
-            case None => throw new UnknownTopicOrPartitionException(
-                                    "Partition %s doesn't exist on %d"
-                                    .format(topicPartition, localBrokerId))
-          }    
-     val numAppendedMessages =
-         if (info.firstOffset == -1L || info.lastOffset == -1L)
-              0
-         else
-              info.lastOffset - info.firstOffset + 1
-// update stats for successfully appended bytes and messages as bytesInRate and messageInRate
-          BrokerTopicStats.getBrokerTopicStats(topicPartition.topic).bytesInRate.mark(messages.sizeInBytes)
-          BrokerTopicStats.getBrokerAllTopicsStats.bytesInRate.mark(messages.sizeInBytes)
-          BrokerTopicStats.getBrokerTopicStats(topicPartition.topic).messagesInRate.mark(numAppendedMessages)
-          BrokerTopicStats.getBrokerAllTopicsStats.messagesInRate.mark(numAppendedMessages)
-
-trace("%d bytes written to log %s-%d beginning at offset %d and ending at offset %d"
-.format(messages.sizeInBytes, topicPartition.topic, topicPartition.partition, info.firstOffset, info.lastOffset))
-
-   (topicPartition, LogAppendResult(info))
-        }
-</code>
-</pre>
-
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;appendToLocalLog方法内会调用partition.appendMessagesToLeader方法将offset信息append到kafka管理offset的内部topic的leader对应的本地的log文件内。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">     <span class="keyword">val</span> partitionOpt = getPartition(topicPartition.topic,</div><div class="line">     								  topicPartition.partition)</div><div class="line">     <span class="keyword">val</span> info = partitionOpt <span class="keyword">match</span> &#123;</div><div class="line">            <span class="keyword">case</span> <span class="type">Some</span>(partition) =&gt;</div><div class="line">     			&lt;strong&gt;partition.appendMessagesToLeader(</div><div class="line">     				messages.asInstanceOf[<span class="type">ByteBufferMessageSet</span>], </div><div class="line">     				requiredAcks</div><div class="line">     				)&lt;/strong&gt;</div><div class="line">            <span class="keyword">case</span> <span class="type">None</span> =&gt; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">UnknownTopicOrPartitionException</span>(</div><div class="line">            						<span class="string">"Partition %s doesn't exist on %d"</span></div><div class="line">            						.format(topicPartition, localBrokerId))</div><div class="line">          &#125;	</div><div class="line">     <span class="keyword">val</span> numAppendedMessages =</div><div class="line">         <span class="keyword">if</span> (info.firstOffset == <span class="number">-1</span>L || info.lastOffset == <span class="number">-1</span>L)</div><div class="line">              <span class="number">0</span></div><div class="line">         <span class="keyword">else</span></div><div class="line">              info.lastOffset - info.firstOffset + <span class="number">1</span></div><div class="line"><span class="comment">// update stats for successfully appended bytes and messages as bytesInRate and messageInRate</span></div><div class="line">          <span class="type">BrokerTopicStats</span>.getBrokerTopicStats(topicPartition.topic).bytesInRate.mark(messages.sizeInBytes)</div><div class="line">          <span class="type">BrokerTopicStats</span>.getBrokerAllTopicsStats.bytesInRate.mark(messages.sizeInBytes)</div><div class="line">          <span class="type">BrokerTopicStats</span>.getBrokerTopicStats(topicPartition.topic).messagesInRate.mark(numAppendedMessages)</div><div class="line">          <span class="type">BrokerTopicStats</span>.getBrokerAllTopicsStats.messagesInRate.mark(numAppendedMessages)</div><div class="line"></div><div class="line">trace(<span class="string">"%d bytes written to log %s-%d beginning at offset %d and ending at offset %d"</span></div><div class="line">.format(messages.sizeInBytes, topicPartition.topic, topicPartition.partition, info.firstOffset, info.lastOffset))</div><div class="line"></div><div class="line">   (topicPartition, <span class="type">LogAppendResult</span>(info))</div><div class="line">        &#125;</div></pre></td></tr></table></figure></p>
 <p><strong>（6）Partition.appendMessagesToLeader</strong></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;appendMessagesToLeader方法会在确保leader存在且isr列表size大于minInSyncReplicas的情况下，调用Log.append方法进行append操作</p>
-<pre>
-<code>
-  val (info, leaderHWIncremented) = inReadLock(leaderIsrUpdateLock) {
-      val leaderReplicaOpt = leaderReplicaIfLocal()
-      leaderReplicaOpt match {
-        case Some(leaderReplica) =>
-          val log = leaderReplica.log.get
-          val minIsr = log.config.minInSyncReplicas
-          val inSyncSize = inSyncReplicas.size
-// Avoid writing to leader if there are not enough insync replicas to make it safe
-          if (inSyncSize < minIsr && requiredAcks == -1) {
-            throw new NotEnoughReplicasException("Number of insync replicas for partition [%s,%d] is [%d], below required minimum [%d]"
-              .format(topic, partitionId, inSyncSize, minIsr))
-          }
-            <strong>val info = log.append(messages, assignOffsets = true)</strong>
-// probably unblock some follower fetch requests since log end offset has been updated
-          replicaManager.tryCompleteDelayedFetch(new TopicPartitionOperationKey(
-                                                  this.topic, this.partitionId))
-// we may need to increment high watermark since ISR could be down to 1
-          (info, maybeIncrementLeaderHW(leaderReplica))
-        case None =>
-          throw new NotLeaderForPartitionException("Leader not local for partition [%s,%d] on broker %d"
-            .format(topic, partitionId, localBrokerId))
-      }
-    }
-</code>
-</pre>
-
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;appendMessagesToLeader方法会在确保leader存在且isr列表size大于minInSyncReplicas的情况下，调用Log.append方法进行append操作<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">  <span class="keyword">val</span> (info, leaderHWIncremented) = inReadLock(leaderIsrUpdateLock) &#123;</div><div class="line">      <span class="keyword">val</span> leaderReplicaOpt = leaderReplicaIfLocal()</div><div class="line">      leaderReplicaOpt <span class="keyword">match</span> &#123;</div><div class="line">        <span class="keyword">case</span> <span class="type">Some</span>(leaderReplica) =&gt;</div><div class="line">          <span class="keyword">val</span> log = leaderReplica.log.get</div><div class="line">          <span class="keyword">val</span> minIsr = log.config.minInSyncReplicas</div><div class="line">          <span class="keyword">val</span> inSyncSize = inSyncReplicas.size</div><div class="line"><span class="comment">// Avoid writing to leader if there are not enough insync replicas to make it safe</span></div><div class="line">          <span class="keyword">if</span> (inSyncSize &lt; minIsr &amp;&amp; requiredAcks == <span class="number">-1</span>) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">NotEnoughReplicasException</span>(<span class="string">"Number of insync replicas for partition [%s,%d] is [%d], below required minimum [%d]"</span></div><div class="line">              .format(topic, partitionId, inSyncSize, minIsr))</div><div class="line">          &#125;</div><div class="line">  		  &lt;strong&gt;<span class="keyword">val</span> info = log.append(messages, assignOffsets = <span class="literal">true</span>)&lt;/strong&gt;</div><div class="line"><span class="comment">// probably unblock some follower fetch requests since log end offset has been updated</span></div><div class="line">          replicaManager.tryCompleteDelayedFetch(<span class="keyword">new</span> <span class="type">TopicPartitionOperationKey</span>(</div><div class="line">  												<span class="keyword">this</span>.topic, <span class="keyword">this</span>.partitionId))</div><div class="line"><span class="comment">// we may need to increment high watermark since ISR could be down to 1</span></div><div class="line">          (info, maybeIncrementLeaderHW(leaderReplica))</div><div class="line">		<span class="keyword">case</span> <span class="type">None</span> =&gt;</div><div class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">NotLeaderForPartitionException</span>(<span class="string">"Leader not local for partition [%s,%d] on broker %d"</span></div><div class="line">            .format(topic, partitionId, localBrokerId))</div><div class="line">      &#125;</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
 <p><strong>（7）Log.append</strong></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;Log.append方法主要是执行了以下两个方法，先是调用LogSegment.append方法append信息到log文件，然后再更新这个log文件的最新offset。</p>
-<pre>
-<code>
-// now append to the log
-   segment.append(appendInfo.firstOffset, validMessages)
-// increment the log end offset
-   updateLogEndOffset(appendInfo.lastOffset + 1)
-</code></pre>
-
-
-**（8）最后的写入文件的步骤**
-
-LogSegment.append：
-<pre>
-<code>
- @nonthreadsafe
- def append(offset: Long, messages: ByteBufferMessageSet) {
-    if (messages.sizeInBytes > 0) {
-      trace("Inserting %d bytes at offset %d at position %d".format(messages.sizeInBytes, offset, log.sizeInBytes()))
-      // append an entry to the index (if needed)
-      if(bytesSinceLastIndexEntry > indexIntervalBytes) {
-        index.append(offset, log.sizeInBytes())
-        this.bytesSinceLastIndexEntry = 0
-      }
-      // append the messages
-      <strong>log.append(messages)</strong>
-      this.bytesSinceLastIndexEntry += messages.sizeInBytes
-    }
-  }
-</code>
-</pre>
-
-<p>FileMessageSet.append:</p>
-<pre>
-<code>
- def append(messages: ByteBufferMessageSet) {
-    <strong>val written = messages.writeFullyTo(channel)</strong>
-    _size.getAndAdd(written)
-  }
-</code>
-</pre>
-
-<p>ByteBufferMessageSet.writeFullyTo:</p>
-<pre>
-<code>
- def writeFullyTo(channel: GatheringByteChannel): Int = {
-    buffer.mark()
-    var written = 0
-    while (written < sizeInBytes)
-      <strong>written += channel.write(buffer)</strong>
-    buffer.reset()
-    written
-  }
-</code>
-</pre>
-
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后使用java nio的FileChannel类的write方法，从buffer中读取offset信息并写入到channel中，最终写入到文件中。</p>
-<pre>
-<code>
-  def writeFullyTo(channel: GatheringByteChannel): Int = {
-    buffer.mark()
-    var written = 0
-    while (written < sizeInBytes)
-      written += channel.write(buffer)
-    buffer.reset()
-    written
-  }
-</code>
-</pre>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;Log.append方法主要是执行了以下两个方法，先是调用LogSegment.append方法append信息到log文件，然后再更新这个log文件的最新offset。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">// now append to the log</span></div><div class="line">   segment.append(appendInfo.firstOffset, validMessages)</div><div class="line"><span class="comment">// increment the log end offset</span></div><div class="line">   updateLogEndOffset(appendInfo.lastOffset + <span class="number">1</span>)</div></pre></td></tr></table></figure></p>
+<p><strong>（8）最后的写入文件的步骤</strong></p>
+<p>LogSegment.append：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@nonthreadsafe</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">append</span></span>(offset: <span class="type">Long</span>, messages: <span class="type">ByteBufferMessageSet</span>) &#123;</div><div class="line">   <span class="keyword">if</span> (messages.sizeInBytes &gt; <span class="number">0</span>) &#123;</div><div class="line">     trace(<span class="string">"Inserting %d bytes at offset %d at position %d"</span>.format(messages.sizeInBytes, offset, log.sizeInBytes()))</div><div class="line">     <span class="comment">// append an entry to the index (if needed)</span></div><div class="line">     <span class="keyword">if</span>(bytesSinceLastIndexEntry &gt; indexIntervalBytes) &#123;</div><div class="line">       index.append(offset, log.sizeInBytes())</div><div class="line">       <span class="keyword">this</span>.bytesSinceLastIndexEntry = <span class="number">0</span></div><div class="line">     &#125;</div><div class="line">     <span class="comment">// append the messages</span></div><div class="line">     &lt;strong&gt;log.append(messages)&lt;/strong&gt;</div><div class="line">     <span class="keyword">this</span>.bytesSinceLastIndexEntry += messages.sizeInBytes</div><div class="line">   &#125;</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>FileMessageSet.append:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">append</span></span>(messages: <span class="type">ByteBufferMessageSet</span>) &#123;</div><div class="line">   &lt;strong&gt;<span class="keyword">val</span> written = messages.writeFullyTo(channel)&lt;/strong&gt;</div><div class="line">   _size.getAndAdd(written)</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>ByteBufferMessageSet.writeFullyTo:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">writeFullyTo</span></span>(channel: <span class="type">GatheringByteChannel</span>): <span class="type">Int</span> = &#123;</div><div class="line">   buffer.mark()</div><div class="line">   <span class="keyword">var</span> written = <span class="number">0</span></div><div class="line">   <span class="keyword">while</span> (written &lt; sizeInBytes)</div><div class="line">     &lt;strong&gt;written += channel.write(buffer)&lt;/strong&gt;</div><div class="line">   buffer.reset()</div><div class="line">   written</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后使用java nio的FileChannel类的write方法，从buffer中读取offset信息并写入到channel中，最终写入到文件中。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">writeFullyTo</span></span>(channel: <span class="type">GatheringByteChannel</span>): <span class="type">Int</span> = &#123;</div><div class="line">  buffer.mark()</div><div class="line">  <span class="keyword">var</span> written = <span class="number">0</span></div><div class="line">  <span class="keyword">while</span> (written &lt; sizeInBytes)</div><div class="line">    written += channel.write(buffer)</div><div class="line">  buffer.reset()</div><div class="line">  written</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
 
       
     </div>
@@ -746,7 +499,7 @@ LogSegment.append：
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、序言"><span class="nav-number">1.</span> <span class="nav-text">1、序言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2、offset-commit"><span class="nav-number">2.</span> <span class="nav-text">2、offset commit</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-server端源码"><span class="nav-number">2.0.1.</span> <span class="nav-text">**2.1.server端源码**</span></a></li></ol></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#序言"><span class="nav-number">1.</span> <span class="nav-text">序言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#offset-commit"><span class="nav-number">2.</span> <span class="nav-text">offset commit</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#server端源码"><span class="nav-number">2.1.</span> <span class="nav-text">server端源码</span></a></li></ol></li></ol></div>
             
           </div>
         </section>
