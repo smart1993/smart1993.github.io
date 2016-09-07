@@ -1,0 +1,878 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="kafka," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="hljs.initHighlightingOnLoad();
+1、序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到of">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kafka_offset_manager源码分析">
+<meta property="og:url" content="https://github.com/smart1993.github.io/2016/09/07/kafka-offset-manager源码分析/index.html">
+<meta property="og:site_name" content="Smart's Blog">
+<meta property="og:description" content="hljs.initHighlightingOnLoad();
+1、序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到of">
+<meta property="og:image" content="http://smart1993.github.io/imgs/kafka_offset_manager.jpg">
+<meta property="og:updated_time" content="2016-09-07T06:07:43.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="kafka_offset_manager源码分析">
+<meta name="twitter:description" content="hljs.initHighlightingOnLoad();
+1、序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到of">
+<meta name="twitter:image" content="http://smart1993.github.io/imgs/kafka_offset_manager.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> kafka_offset_manager源码分析 | Smart's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Smart's Blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                kafka_offset_manager源码分析
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-09-07T13:56:01+08:00" content="2016-09-07">
+              2016-09-07
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><link rel="stylesheet" href="/path/to/styles/default.css"></p>
+<p><script src="/path/to/highlight.pack.js"></script></p>
+<p><script>hljs.initHighlightingOnLoad();</script></p>
+<h3 id="1、序言"><a href="#1、序言" class="headerlink" title="1、序言"></a><strong><strong>1、序言</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offset=100所属的index文件，然后从该文件内找到offset=100的值，再通过这个值找到所需获取的数据在日志文件的具体位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafka提供了一套较为可用的offset管理机制，包括offset commit、offset reset、offset存储等功能。下面我们从kafka相关部分的源码对offset manager做分析。<br><a id="more"></a></p>
+<h3 id="2、offset-commit"><a href="#2、offset-commit" class="headerlink" title="2、offset commit"></a><strong><strong>2、offset commit</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka consumer客户端会定时的提交自己当前的消费偏移量，以确保不会重复消费数据，客户端通过发送OffsetCommitRequest完成。而kafka server通过handleOffsetCommitRequest方法接收该请求，并对请求进行相应的处理，最后发送sendResponseCallback作为结果供consumer客户端的回调函数处理。接下来我们从java客户端和server端两个方面的源码详细分析offset commit的处理过程与相应机制。</p>
+<h5 id="2-1-server端源码"><a href="#2-1-server端源码" class="headerlink" title="**2.1.server端源码**"></a><strong>**</strong>2.1.server端源码<strong>**</strong></h5><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;下面这张图是kafka server端执行offset Commit请求的完整的流程图，kafka接收offset commit请求，然后调用相应的方法处理请求，如果offset的存储策略是存储于kafka的内部topic，就将请求内包含的offset信息append到kafka管理offset的内部topic对应的log文件内，最后返回一个response callback给客户端，表示处理结果。下面我们根据这张图，一步一步的分析下去。</p>
+<p><img src="http://smart1993.github.io/imgs/kafka_offset_manager.jpg" alt="image"></p>
+<p><strong><strong>（1）KafkaApis.handleOffsetCommitRequest</strong></strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这是第一步，KafkaApis类的作用是kafka接收各类请求，然后调用对应的方法去处理这些请求，当接收到时offset commit请求时，就调用handleOffsetCommitRequest方法处理。该方法会从客户端请求内提取出partition和group信息，并将这些信息作为参数传入第二步的handleCommitOffsets方法去执行。</p>
+<p><strong><strong>注</strong></strong>：kafka会根据request.header中的apiVersion信息进行不同的处理。apiVersion=0表示offset存储于zookeeper中,否则表示offset存储于offset manager中(kafka的内部topic)。我们这里分析的是第二种情况，即内部topic。</p>
+<pre>
+<code>
+  val currentTimestamp = SystemTime.milliseconds
+  val defaultExpireTimestamp = offsetRetention + currentTimestamp
+  val partitionData = authorizedRequestInfo.mapValues { partitionData =>
+  val metadata = 
+  if (partitionData.metadata == null) 
+      OffsetMetadata.NoMetadata 
+  else 
+      partitionData.metadata;
+      new OffsetAndMetadata(
+          offsetMetadata = OffsetMetadata(partitionData.offset, metadata),
+          commitTimestamp = currentTimestamp,
+          expireTimestamp = {
+            if (partitionData.timestamp == OffsetCommitRequest.DEFAULT_TIMESTAMP)
+               defaultExpireTimestamp
+            else
+               offsetRetention + partitionData.timestamp
+           }
+        )
+      }
+
+    // call coordinator to handle commit offset
+    coordinator.handleCommitOffsets(
+       offsetCommitRequest.groupId,
+       offsetCommitRequest.memberId,
+       offsetCommitRequest.generationId,
+       partitionData,
+       sendResponseCallback)
+    }
+</code>
+</pre>
+
+<p><strong>（2）GroupCoordinator.handleCommitOffsets</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;接下来看一下GroupCoordinator类的handleCommitOffsets方法的相关代码。该方法首先会校验Coordinator的状态和请求信息内的group信息，校验通过后进入下面这个else结构体内，</p>
+<pre>
+<code>
+else {
+    val member = group.get(memberId)
+    completeAndScheduleNextHeartbeatExpiration(group, member)
+    <strong>delayedOffsetStore = Some(groupManager.prepareStoreOffsets(groupId, memberId, generationId,offsetMetadata, responseCallback))</strong>
+    }
+</code>
+</pre>
+
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;其中加粗的这一句是执行offset存储的关键语句，prepareStoreOffsets方法顾名思义，就是要做存储offset信息前的准备工作，具体做了哪些工作我们看一看prepareStoreOffsets方法内的代码：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;首先该方法对offsetMetadata进行过滤,过滤条件为size&lt;OffsetConfig.DefaultMaxMetadataSize=4096),然后遍历过滤所得的存储offsetMetadata的map，并将处理所得的key、value、timestamp等相关信息实例化一个Message类，并转换成一个序列，messages就是这个序列的引用。接着实例化一个TopicPartition对象。最后将TopicPartition对象和由messages序列生成的ByteBufferMessageSet对象做完键值对，得到一个Map，这个Map对象的名称是offsetTopicPartition。</p>
+<pre>
+<code>
+// first filter out partitions with offset metadata size exceeding limit
+    val filteredOffsetMetadata = offsetMetadata.filter { 
+        case (topicPartition, offsetAndMetadata) =>
+        validateOffsetMetadataLength(offsetAndMetadata.metadata)
+    }
+// construct the message set to append
+    val messages = filteredOffsetMetadata.map {
+        case (topicAndPartition, offsetAndMetadata) =>
+            val (magicValue, timestamp)=
+                getMessageFormatVersionAndTimestamp(partitionFor(groupId))
+      new Message(
+        key = GroupMetadataManager.offsetCommitKey(groupId,         topicAndPartition.topic, topicAndPartition.partition),
+        bytes = GroupMetadataManager.offsetCommitValue(offsetAndMetadata),
+        timestamp = timestamp,
+        magicValue = magicValue
+      )
+    }.toSeq
+  val offsetTopicPartition = new TopicPartition(
+                                      TopicConstants.GROUP_METADATA_TOPIC_NAME, 
+                                      partitionFor(groupId)
+                                      )
+  val offsetsAndMetadataMessageSet = Map(offsetTopicPartition ->
+  new ByteBufferMessageSet(config.offsetsTopicCompressionCodec, messages:_*))
+</code>
+</pre>
+
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;做完以上工作，该方法还定义了一个回调函数putCacheCallback，这个回调函数的作用是当offset相关信息被append到log文件之后，再将相关信息写入cache，写入cache的方法是GroupMetadataManager的putOffset方法，相关代码如下：</p>
+<pre>
+<code>
+ /**
+   * Put the (already committed) offset for the given group/topic/partition into the cache.
+   *
+   * @param key The group-topic-partition
+   * @param offsetAndMetadata The offset/metadata to be stored
+   */
+  private def putOffset(key: GroupTopicPartition, offsetAndMetadata: OffsetAndMetadata) {
+    offsetsCache.put(key, offsetAndMetadata)
+  }
+</code>
+</pre>
+
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后，返回一个DelayedStore对象，参数就是之前生成的offsetTopicPartition对象和putCacheCallback回调函数。在GroupCoordinator.handleCommitOffsets方法的最后，将这个DelayedStore对象作为参数传入GroupMetadataManager.store方法中，代码如下：</p>
+<pre>
+<code>
+  delayedOffsetStore.foreach(groupManager.store)
+</code>
+</pre>
+
+<p><strong>（3）GroupMetadataManager.store</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这个方法很简单，入参是之前prepareStoreOffsets方法生成的DelayedStore对象，然后调用appendMessages方法：</p>
+<pre>
+<code>
+def store(delayedAppend: DelayedStore) {
+   // call replica manager to append the group message
+   replicaManager.appendMessages(
+     config.offsetCommitTimeoutMs.toLong,
+     config.offsetCommitRequiredAcks,
+     true, // allow appending to internal offset topic
+     delayedAppend.messageSet,
+     delayedAppend.callback)
+  }
+</code>
+</pre>
+
+<p><strong>（4）ReplicaManager.appendMessages</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这个方法的作用是将offset信息append到分区的leader replicas，并等待信息被复制到其他replicas，当超时或收到满足条件的acks数时会调用之前入参的回调函数(delayedAppend.callback).</p>
+<pre>
+<code>
+   val sTime = SystemTime.milliseconds
+<strong>   val localProduceResults = appendToLocalLog(internalTopicsAllowed,
+                                                 messagesPerPartition,
+                                                 requiredAcks)</strong>
+   debug("Produce to local log in %d ms".format(SystemTime.milliseconds - sTime))
+   val produceStatus = localProduceResults.map { 
+   case (topicPartition, result) =>
+        topicPartition ->
+        ProducePartitionStatus(
+           result.info.lastOffset + 1, // required offset
+           new PartitionResponse(
+           result.errorCode, result.info.firstOffset, result.info.timestamp)
+           )
+      }
+</code>
+</pre>
+
+<p><strong>（5）ReplicaManager.appendToLocalLog</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;appendToLocalLog方法内会调用partition.appendMessagesToLeader方法将offset信息append到kafka管理offset的内部topic的leader对应的本地的log文件内。</p>
+<pre>
+<code>
+try {
+     val partitionOpt = getPartition(topicPartition.topic,
+                                       topicPartition.partition)
+     val info = partitionOpt match {
+            case Some(partition) =>
+                 <strong>partition.appendMessagesToLeader(
+                     messages.asInstanceOf[ByteBufferMessageSet], 
+                     requiredAcks
+                     )</strong>
+            case None => throw new UnknownTopicOrPartitionException(
+                                    "Partition %s doesn't exist on %d"
+                                    .format(topicPartition, localBrokerId))
+          }    
+     val numAppendedMessages =
+         if (info.firstOffset == -1L || info.lastOffset == -1L)
+              0
+         else
+              info.lastOffset - info.firstOffset + 1
+// update stats for successfully appended bytes and messages as bytesInRate and messageInRate
+          BrokerTopicStats.getBrokerTopicStats(topicPartition.topic).bytesInRate.mark(messages.sizeInBytes)
+          BrokerTopicStats.getBrokerAllTopicsStats.bytesInRate.mark(messages.sizeInBytes)
+          BrokerTopicStats.getBrokerTopicStats(topicPartition.topic).messagesInRate.mark(numAppendedMessages)
+          BrokerTopicStats.getBrokerAllTopicsStats.messagesInRate.mark(numAppendedMessages)
+
+trace("%d bytes written to log %s-%d beginning at offset %d and ending at offset %d"
+.format(messages.sizeInBytes, topicPartition.topic, topicPartition.partition, info.firstOffset, info.lastOffset))
+
+   (topicPartition, LogAppendResult(info))
+        }
+</code>
+</pre>
+
+<p><strong>（6）Partition.appendMessagesToLeader</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;appendMessagesToLeader方法会在确保leader存在且isr列表size大于minInSyncReplicas的情况下，调用Log.append方法进行append操作</p>
+<pre>
+<code>
+  val (info, leaderHWIncremented) = inReadLock(leaderIsrUpdateLock) {
+      val leaderReplicaOpt = leaderReplicaIfLocal()
+      leaderReplicaOpt match {
+        case Some(leaderReplica) =>
+          val log = leaderReplica.log.get
+          val minIsr = log.config.minInSyncReplicas
+          val inSyncSize = inSyncReplicas.size
+// Avoid writing to leader if there are not enough insync replicas to make it safe
+          if (inSyncSize < minIsr && requiredAcks == -1) {
+            throw new NotEnoughReplicasException("Number of insync replicas for partition [%s,%d] is [%d], below required minimum [%d]"
+              .format(topic, partitionId, inSyncSize, minIsr))
+          }
+            <strong>val info = log.append(messages, assignOffsets = true)</strong>
+// probably unblock some follower fetch requests since log end offset has been updated
+          replicaManager.tryCompleteDelayedFetch(new TopicPartitionOperationKey(
+                                                  this.topic, this.partitionId))
+// we may need to increment high watermark since ISR could be down to 1
+          (info, maybeIncrementLeaderHW(leaderReplica))
+        case None =>
+          throw new NotLeaderForPartitionException("Leader not local for partition [%s,%d] on broker %d"
+            .format(topic, partitionId, localBrokerId))
+      }
+    }
+</code>
+</pre>
+
+<p><strong>（7）Log.append</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;Log.append方法主要是执行了以下两个方法，先是调用LogSegment.append方法append信息到log文件，然后再更新这个log文件的最新offset。</p>
+<pre>
+<code>
+// now append to the log
+   segment.append(appendInfo.firstOffset, validMessages)
+// increment the log end offset
+   updateLogEndOffset(appendInfo.lastOffset + 1)
+</code></pre>
+
+
+**（8）最后的写入文件的步骤**
+
+LogSegment.append：
+<pre>
+<code>
+ @nonthreadsafe
+ def append(offset: Long, messages: ByteBufferMessageSet) {
+    if (messages.sizeInBytes > 0) {
+      trace("Inserting %d bytes at offset %d at position %d".format(messages.sizeInBytes, offset, log.sizeInBytes()))
+      // append an entry to the index (if needed)
+      if(bytesSinceLastIndexEntry > indexIntervalBytes) {
+        index.append(offset, log.sizeInBytes())
+        this.bytesSinceLastIndexEntry = 0
+      }
+      // append the messages
+      <strong>log.append(messages)</strong>
+      this.bytesSinceLastIndexEntry += messages.sizeInBytes
+    }
+  }
+</code>
+</pre>
+
+<p>FileMessageSet.append:</p>
+<pre>
+<code>
+ def append(messages: ByteBufferMessageSet) {
+    <strong>val written = messages.writeFullyTo(channel)</strong>
+    _size.getAndAdd(written)
+  }
+</code>
+</pre>
+
+<p>ByteBufferMessageSet.writeFullyTo:</p>
+<pre>
+<code>
+ def writeFullyTo(channel: GatheringByteChannel): Int = {
+    buffer.mark()
+    var written = 0
+    while (written < sizeInBytes)
+      <strong>written += channel.write(buffer)</strong>
+    buffer.reset()
+    written
+  }
+</code>
+</pre>
+
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后使用java nio的FileChannel类的write方法，从buffer中读取offset信息并写入到channel中，最终写入到文件中。</p>
+<pre>
+<code>
+  def writeFullyTo(channel: GatheringByteChannel): Int = {
+    buffer.mark()
+    var written = 0
+    while (written < sizeInBytes)
+      written += channel.write(buffer)
+    buffer.reset()
+    written
+  }
+</code>
+</pre>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/kafka/" rel="tag">#kafka</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/26/java通过zookeeper实现分布式锁/" rel="next" title="java通过zookeeper实现分布式锁">
+                <i class="fa fa-chevron-left"></i> java通过zookeeper实现分布式锁
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/avatar.JPG"
+               alt="smart" />
+          <p class="site-author-name" itemprop="name">smart</p>
+          <p class="site-description motion-element" itemprop="description">在生活中追逐梦想</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">6</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/smart1993" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、序言"><span class="nav-number">1.</span> <span class="nav-text">1、序言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2、offset-commit"><span class="nav-number">2.</span> <span class="nav-text">2、offset commit</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-server端源码"><span class="nav-number">2.0.1.</span> <span class="nav-text">**2.1.server端源码**</span></a></li></ol></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">smart</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+  
+  
+  
+
+  
+
+  
+
+</body>
+</html>

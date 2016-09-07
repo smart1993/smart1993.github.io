@@ -243,6 +243,124 @@
             
               
                 
+                <a class="post-title-link" href="/2016/09/07/kafka-offset-manager源码分析/" itemprop="url">
+                  kafka_offset_manager源码分析
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-09-07T13:56:01+08:00" content="2016-09-07">
+              2016-09-07
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p><link rel="stylesheet" href="/path/to/styles/default.css"></p>
+<p><script src="/path/to/highlight.pack.js"></script></p>
+<p><script>hljs.initHighlightingOnLoad();</script></p>
+<h3 id="1、序言"><a href="#1、序言" class="headerlink" title="1、序言"></a><strong><strong>1、序言</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offset=100所属的index文件，然后从该文件内找到offset=100的值，再通过这个值找到所需获取的数据在日志文件的具体位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafka提供了一套较为可用的offset管理机制，包括offset commit、offset reset、offset存储等功能。下面我们从kafka相关部分的源码对offset manager做分析。<br>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/09/07/kafka-offset-manager源码分析/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/08/26/java通过zookeeper实现分布式锁/" itemprop="url">
                   java通过zookeeper实现分布式锁
                 </a>
@@ -850,7 +968,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">5</span>
+              <span class="site-state-item-count">6</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
