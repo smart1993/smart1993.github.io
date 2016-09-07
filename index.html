@@ -243,7 +243,7 @@
             
               
                 
-                <a class="post-title-link" href="/2016/09/07/kafka-offset-manager源码分析/" itemprop="url">
+                <a class="post-title-link" href="/2016/09/07/kafka offset manager源码分析(1)之offset commit/" itemprop="url">
                   kafka_offset_manager源码分析
                 </a>
               
@@ -308,9 +308,9 @@
           <p><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/default.min.css"></p>
 <p><script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script></p>
 <p><script>hljs.initHighlightingOnLoad();</script></p>
-<h3 id="序言"><a href="#序言" class="headerlink" title="序言"></a><strong><strong>序言</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。比如，某个consumer客户端实例当前的存储的offset是100，它去Broker获取消息数据时，找到offset=100所属的index文件，然后从该文件内找到offset=100的值，再通过这个值找到所需获取的数据在日志文件的具体位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafka提供了一套较为可用的offset管理机制，包括offset commit、offset reset、offset存储等功能。下面我们从kafka相关部分的源码对offset manager做分析。<br>
+<h3 id="序言"><a href="#序言" class="headerlink" title="序言"></a><strong><strong>序言</strong></strong></h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafka提供了一套较为可用的offset管理机制，包括offset commit、offset reset、offset存储等功能。下面我们从kafka相关部分的源码对offset commit做分析。<br>
           <div class="post-more-link text-center">
-            <a class="btn" href="/2016/09/07/kafka-offset-manager源码分析/#more" rel="contents">
+            <a class="btn" href="/2016/09/07/kafka offset manager源码分析(1)之offset commit/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
