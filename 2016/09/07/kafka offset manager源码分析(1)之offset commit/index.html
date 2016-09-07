@@ -87,15 +87,15 @@
 <meta name="description" content="hljs.initHighlightingOnLoad();
 序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafk">
 <meta property="og:type" content="article">
-<meta property="og:title" content="kafka_offset_manager源码分析">
+<meta property="og:title" content="kafka offset manager源码分析(1) offset的commit">
 <meta property="og:url" content="https://github.com/smart1993.github.io/2016/09/07/kafka offset manager源码分析(1)之offset commit/index.html">
 <meta property="og:site_name" content="Smart's Blog">
 <meta property="og:description" content="hljs.initHighlightingOnLoad();
 序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafk">
 <meta property="og:image" content="http://smart1993.github.io/imgs/kafka_offset_manager.jpg">
-<meta property="og:updated_time" content="2016-09-07T12:04:56.000Z">
+<meta property="og:updated_time" content="2016-09-07T12:11:05.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="kafka_offset_manager源码分析">
+<meta name="twitter:title" content="kafka offset manager源码分析(1) offset的commit">
 <meta name="twitter:description" content="hljs.initHighlightingOnLoad();
 序言&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka客户端消费者从分区日志文件pull消息时，是通过偏移量(offset)来决定所需要pull消息数据在日志文件中的起始位置。由于offset决定了consumer客户端拉取哪一部分数据，所以保障offset的准确性就显得尤为重要，kafk">
 <meta name="twitter:image" content="http://smart1993.github.io/imgs/kafka_offset_manager.jpg">
@@ -116,7 +116,7 @@
   };
 </script>
 
-  <title> kafka_offset_manager源码分析 | Smart's Blog </title>
+  <title> kafka offset manager源码分析(1) offset的commit | Smart's Blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -246,7 +246,7 @@
             
             
               
-                kafka_offset_manager源码分析
+                kafka offset manager源码分析(1) offset的commit
               
             
           </h1>
