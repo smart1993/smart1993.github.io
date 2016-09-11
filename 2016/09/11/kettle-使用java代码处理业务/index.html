@@ -68,7 +68,7 @@
 <link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="kafka," />
+  <meta name="keywords" content="kettle," />
 
 
 
@@ -84,21 +84,23 @@
 
 
 
-<meta name="description" content="序言：我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。">
+<meta name="description" content="&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;有时候kettle提供的控件无法满足我们自己一些特定的需求，这时候，我们可以自己编写满足需求的代码语言去满足需求，kettle的脚本控件就提供了这个功能，包括java代码、js代码、sql脚本、正则表达式等等，我们现在看一看如何利用java代码来完成我们的需求。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Kafka自定义消息的序列化与反序列化">
-<meta property="og:url" content="https://github.com/smart1993.github.io/2016/08/19/Kafka自定义消息的序列化与反序列化/index.html">
+<meta property="og:title" content="kettle 使用java代码处理业务">
+<meta property="og:url" content="https://github.com/smart1993.github.io/2016/09/11/kettle-使用java代码处理业务/index.html">
 <meta property="og:site_name" content="Smart's Blog">
-<meta property="og:description" content="序言：我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。">
-<meta property="og:image" content="http://i.imgur.com/wJnXtDZ.png">
-<meta property="og:image" content="http://i.imgur.com/eC38ss7.png">
-<meta property="og:image" content="http://i.imgur.com/YblLM9t.png">
-<meta property="og:image" content="http://i.imgur.com/6uIT3aS.png">
-<meta property="og:updated_time" content="2016-08-23T15:33:32.000Z">
+<meta property="og:description" content="&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;有时候kettle提供的控件无法满足我们自己一些特定的需求，这时候，我们可以自己编写满足需求的代码语言去满足需求，kettle的脚本控件就提供了这个功能，包括java代码、js代码、sql脚本、正则表达式等等，我们现在看一看如何利用java代码来完成我们的需求。">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-11_1.png">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-11_2.png">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-11_3.png">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-11_4.png">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-11_5.png">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-11_6.png">
+<meta property="og:updated_time" content="2016-09-11T07:43:02.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Kafka自定义消息的序列化与反序列化">
-<meta name="twitter:description" content="序言：我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。">
-<meta name="twitter:image" content="http://i.imgur.com/wJnXtDZ.png">
+<meta name="twitter:title" content="kettle 使用java代码处理业务">
+<meta name="twitter:description" content="&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;有时候kettle提供的控件无法满足我们自己一些特定的需求，这时候，我们可以自己编写满足需求的代码语言去满足需求，kettle的脚本控件就提供了这个功能，包括java代码、js代码、sql脚本、正则表达式等等，我们现在看一看如何利用java代码来完成我们的需求。">
+<meta name="twitter:image" content="http://smartyml.com/imgs/2016-09-11_1.png">
 
 
 
@@ -116,7 +118,7 @@
   };
 </script>
 
-  <title> Kafka自定义消息的序列化与反序列化 | Smart's Blog </title>
+  <title> kettle 使用java代码处理业务 | Smart's Blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -246,7 +248,7 @@
             
             
               
-                Kafka自定义消息的序列化与反序列化
+                kettle 使用java代码处理业务
               
             
           </h1>
@@ -258,8 +260,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-19T22:50:45+08:00" content="2016-08-19">
-              2016-08-19
+            <time itemprop="dateCreated" datetime="2016-09-11T15:24:00+08:00" content="2016-09-11">
+              2016-09-11
             </time>
           </span>
 
@@ -272,8 +274,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/kettle/" itemprop="url" rel="index">
+                    <span itemprop="name">kettle</span>
                   </a>
                 </span>
 
@@ -305,12 +307,20 @@
       
 
       
-        <p><strong>序言：</strong><br>我们在利用kafka做为消息中间件的使用过程中，有时候希望kafka存储的是自定义消息，如JavaBean,而kafka客户端只提供了String类型和Byte数组类型的消息序列化与反序列化的接口，这不能够满足我们的需求。所以我们需要通过实现kafka客户端提供的Serializer和Deserializer这两个接口来达到我们的目的。<br><a id="more"></a></p>
-<h4 id="1、-producer端序列化JavaBean并发送"><a href="#1、-producer端序列化JavaBean并发送" class="headerlink" title="1、 producer端序列化JavaBean并发送"></a><strong>1、 producer端序列化JavaBean并发送</strong></h4><p>这是一个简单的kafka的producer的demo，与平常我们使用的demo不同，producer的config中的value.serializer参数的值我们配置为我们自己定义的序列化类WritableBeanSerializer。<br><img src="http://i.imgur.com/wJnXtDZ.png" alt=""><br>WritableBeanSerializer是我们自定义WritableBean的序列化类，这个类实现了kafka客户端的Serializer接口，通过实现其中的serialize方法，对WritableBean进行序列化。<br><img src="http://i.imgur.com/eC38ss7.png" alt=""><br>对象的序列化操作就是将对象序列化成一个byte数组，即字节流的形式，这里我们利用Alibaba的fastJson实现，也可以使用其他的序列化框架或者自己实现序列化过程。</p>
-<h4 id="2、consumer端消费数据并反序列化"><a href="#2、consumer端消费数据并反序列化" class="headerlink" title="2、consumer端消费数据并反序列化"></a><strong>2、consumer端消费数据并反序列化</strong></h4><p><img src="http://i.imgur.com/YblLM9t.png" alt=""></p>
-<p>这是kafka的cosumer端的实现，与之前producer端一样，将value.deserializer参数配为我们自已定义的反序列化类WritableBeanSerializer，同时我们定义的KafkaConsumer和ConsumerRecords类内的value要定义为WritableBean类型，即这两行代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">KafkaConsumer&lt;String,WritableBean&gt; consumer = new KafkaConsumer&lt;&gt;(props2)；</div><div class="line">ConsumerRecord&lt;String,WritableBean&gt; record；</div></pre></td></tr></table></figure></p>
-<p>以下是WritableBeanSerializer类的代码，实现Deserializer接口中的deserialize方法，同样也是使用fastJson进行反序列化，这个方法的返回类型可以由我们自己定义，因此我们直接定义为WritableBean类型。<br><img src="http://i.imgur.com/6uIT3aS.png" alt=""></p>
-<p>最后需要注意的一点的是被序列化和反序列化的JavaBean一定要有默认的构造方法！</p>
+        <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;有时候kettle提供的控件无法满足我们自己一些特定的需求，这时候，我们可以自己编写满足需求的代码语言去满足需求，kettle的脚本控件就提供了这个功能，包括java代码、js代码、sql脚本、正则表达式等等，我们现在看一看如何利用java代码来完成我们的需求。<br><a id="more"></a></p>
+<p><img src="http://smartyml.com/imgs/2016-09-11_1.png" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;先看一下需求，现在有两张表，一张是kfc_fact_paymentdetail表(记为k表)，表的数据是总订单流水，另一张表是t_credit_transaction(记为t表)，表的数据是会员订单流水。要求将k表的数据导入到一个新表中，新表表结构与K表相同，但是新表中新增一个一个标志位，标记该条数据是否属于会员订单。</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;第一步，以k表为主表，k.order_unique_id和t.orderid作为关联字段，将t表左联接到k表。</p>
+<p><img src="http://smartyml.com/imgs/2016-09-11_2.png" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;此时，得到的结果集为下图，前面是k表的数据信息，id字段是t表的主键，有值的记录表示该条记录是会员订单。</p>
+<p><img src="http://smartyml.com/imgs/2016-09-11_3.png" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;接下来需要进行的操作是，增加一个isMember字段，标志是否为会员订单，如果id字段不为null，则isMember字段置为1，这一步我们通过下面的java代码控件实现：</p>
+<p><img src="http://smartyml.com/imgs/2016-09-11_4.png" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;左侧的列表是输入流的所有字段，下面红色标注的地方可以在输出流中添加新的字段。然后中间的地方就是我们编写java代码的地方。我们需要在kettle提供的Processor类的processRow方法中处理输入的数据。processRow方法每次获取输入流中的一行数据，方法的返回值如果是true继续获取一下行数据，如果是false则停止获取。上图中我们首先通过getRow()方法获取到一行数据，如果数据不为null，再获取id字段的值并赋值给id变量，如果id变量不为null，就设置对应的输出流中的isMember字段的值为1，最后调用putRow()方法把新的数据行放入到输出流中，输出到下一个步骤。需要注意的是，在结束处理时，一定要调用setOutputDone()方法，表示设置输出结束，这样才会把全部数据输出到下一个步骤。</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最后整个步骤如下图所示：</p>
+<p><img src="http://smartyml.com/imgs/2016-09-11_5.png" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;输出到本地mysql的结果：</p>
+<p><img src="http://smartyml.com/imgs/2016-09-11_6.png" alt="image"></p>
 
       
     </div>
@@ -332,7 +342,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/kafka/" rel="tag">#kafka</a>
+            <a href="/tags/kettle/" rel="tag">#kettle</a>
           
         </div>
       
@@ -341,17 +351,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/08/14/关于我/" rel="next" title="关于我">
-                <i class="fa fa-chevron-left"></i> 关于我
+              <a href="/2016/09/10/kettle-命令行传参/" rel="next" title="kettle 命令行传参">
+                <i class="fa fa-chevron-left"></i> kettle 命令行传参
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/08/23/kafka的Replica和leader机制/" rel="prev" title="kafka的Replica和leader机制">
-                kafka的Replica和leader机制 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -476,7 +482,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、-producer端序列化JavaBean并发送"><span class="nav-number">1.</span> <span class="nav-text">1、 producer端序列化JavaBean并发送</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2、consumer端消费数据并反序列化"><span class="nav-number">2.</span> <span class="nav-text">2、consumer端消费数据并反序列化</span></a></li></ol></div>
+              <p class="post-toc-empty">此文章未包含目录</p>
             
           </div>
         </section>
