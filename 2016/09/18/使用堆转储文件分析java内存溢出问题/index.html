@@ -92,14 +92,14 @@
 <meta property="og:site_name" content="Smart's Blog">
 <meta property="og:description" content="序言：
 &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;我们在运行java应用程序时，经常会遇到OutOfMemoryError的内存溢出问题，而且在代码量大逻辑复杂的系统里，要定位内存溢出的代码段是一个很让人困扰的问题。下面来看一种通过获取堆转储文件的形式来分析内存溢出的方法。">
-<meta property="og:image" content="http://smartyml.com/imgs/2016-09-18_1">
-<meta property="og:image" content="http://smartyml.com/imgs/2016-09-18_2">
-<meta property="og:updated_time" content="2016-09-18T15:33:15.000Z">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-18_1.png">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-18_2.png">
+<meta property="og:updated_time" content="2016-09-18T15:37:20.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="使用堆转储文件分析java内存溢出问题">
 <meta name="twitter:description" content="序言：
 &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;我们在运行java应用程序时，经常会遇到OutOfMemoryError的内存溢出问题，而且在代码量大逻辑复杂的系统里，要定位内存溢出的代码段是一个很让人困扰的问题。下面来看一种通过获取堆转储文件的形式来分析内存溢出的方法。">
-<meta name="twitter:image" content="http://smartyml.com/imgs/2016-09-18_1">
+<meta name="twitter:image" content="http://smartyml.com/imgs/2016-09-18_1.png">
 
 
 
@@ -313,9 +313,9 @@
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;然后编写一个测试方法，循环创建一千万个User对象，存储于一个List内。之后设置Idea的运行选项，在VM options内加入:</p>
 <p>-Xmx40m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/Users/yangml/Desktop</p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们这里设置了-Xmx最大堆内存大小为40m是为了减小JVM堆内存的大小，使测试方法可以比较简单的触发OutOfMemoryError。后面的两个选项是设置堆转储的关键点，-XX:+HeapDumpOnOutOfMemoryError的作用是JVM在遇到OutOfMemoryError时会拍摄一个“堆内存快照”，这个快照就是将当前JVM的堆内存，并将其转储后面HeadDumpPath指定的目录下。接着运行程序，一段时间后，抛出了OnOutOfMemoryError异常：</p>
-<p><img src="http://smartyml.com/imgs/2016-09-18_1" alt="image"></p>
+<p><img src="http://smartyml.com/imgs/2016-09-18_1.png" alt="image"></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;同时，在指定目录下生成了一个java_pid29013.hprof文件，这是一个二进制文件，需要使用其他工具来打开它，这里我们使用JProfiler来打开，打开后如下图：</p>
-<p><img src="http://smartyml.com/imgs/2016-09-18_2" alt="image"></p>
+<p><img src="http://smartyml.com/imgs/2016-09-18_2.png" alt="image"></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;可以看到创建了十分多的User类实例对象，并且没有被垃圾回收器回收，因此可以断定程序在某个地方创建了大量的User对象，并且没有被及时的回收。</p>
 
       
