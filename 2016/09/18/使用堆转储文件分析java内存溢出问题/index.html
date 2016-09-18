@@ -68,7 +68,7 @@
 <link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="kafka," />
+  <meta name="keywords" content="JVM," />
 
 
 
@@ -84,21 +84,22 @@
 
 
 
-<meta name="description" content="1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica">
+<meta name="description" content="序言：
+&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;我们在运行java应用程序时，经常会遇到OutOfMemoryError的内存溢出问题，而且在代码量大逻辑复杂的系统里，要定位内存溢出的代码段是一个很让人困扰的问题。下面来看一种通过获取堆转储文件的形式来分析内存溢出的方法。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="kafka的Replica和leader机制">
-<meta property="og:url" content="https://github.com/smart1993.github.io/2016/08/23/kafka的Replica和leader机制/index.html">
+<meta property="og:title" content="使用堆转储文件分析java内存溢出问题">
+<meta property="og:url" content="https://github.com/smart1993.github.io/2016/09/18/使用堆转储文件分析java内存溢出问题/index.html">
 <meta property="og:site_name" content="Smart's Blog">
-<meta property="og:description" content="1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica">
-<meta property="og:image" content="http://i.imgur.com/2NuIeYN.png">
-<meta property="og:image" content="http://i.imgur.com/edtMpFw.png">
-<meta property="og:image" content="http://i.imgur.com/FtbCL0a.png">
-<meta property="og:image" content="http://i.imgur.com/QrnksVQ.png">
-<meta property="og:updated_time" content="2016-08-23T15:32:16.000Z">
+<meta property="og:description" content="序言：
+&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;我们在运行java应用程序时，经常会遇到OutOfMemoryError的内存溢出问题，而且在代码量大逻辑复杂的系统里，要定位内存溢出的代码段是一个很让人困扰的问题。下面来看一种通过获取堆转储文件的形式来分析内存溢出的方法。">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-18_1">
+<meta property="og:image" content="http://smartyml.com/imgs/2016-09-18_2">
+<meta property="og:updated_time" content="2016-09-18T15:33:15.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="kafka的Replica和leader机制">
-<meta name="twitter:description" content="1、Replica和leader的关系  &amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica">
-<meta name="twitter:image" content="http://i.imgur.com/2NuIeYN.png">
+<meta name="twitter:title" content="使用堆转储文件分析java内存溢出问题">
+<meta name="twitter:description" content="序言：
+&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;我们在运行java应用程序时，经常会遇到OutOfMemoryError的内存溢出问题，而且在代码量大逻辑复杂的系统里，要定位内存溢出的代码段是一个很让人困扰的问题。下面来看一种通过获取堆转储文件的形式来分析内存溢出的方法。">
+<meta name="twitter:image" content="http://smartyml.com/imgs/2016-09-18_1">
 
 
 
@@ -116,7 +117,7 @@
   };
 </script>
 
-  <title> kafka的Replica和leader机制 | Smart's Blog </title>
+  <title> 使用堆转储文件分析java内存溢出问题 | Smart's Blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -246,7 +247,7 @@
             
             
               
-                kafka的Replica和leader机制
+                使用堆转储文件分析java内存溢出问题
               
             
           </h1>
@@ -258,8 +259,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-23T23:18:15+08:00" content="2016-08-23">
-              2016-08-23
+            <time itemprop="dateCreated" datetime="2016-09-18T22:38:21+08:00" content="2016-09-18">
+              2016-09-18
             </time>
           </span>
 
@@ -272,8 +273,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/性能调优/" itemprop="url" rel="index">
+                    <span itemprop="name">性能调优</span>
                   </a>
                 </span>
 
@@ -305,18 +306,17 @@
       
 
       
-        <h4 id="1、Replica和leader的关系"><a href="#1、Replica和leader的关系" class="headerlink" title="1、Replica和leader的关系"></a><strong>1、Replica和leader的关系</strong></h4><p>  &#160;&#160;&#160;&#160;&#160;&#160;&#160;kafka的一个Partition会有多个Replica，而这多个Replica之中会有一个leader,客户端程序只与这个leader进行通信，其他Replica作为Follower从leader中fetch数据。如果不采用leader机制，客户端可以跟任一Replica进行通信，就需要保证所有Replica之间互相不断同步数据，此时的通信链路为N*N条，无法保证数据的一致性和有序性。而leader机制下，通信链路为N*1条，系统更加简单和高效。<br><a id="more"></a></p>
-<h4 id="2、Replica在集群内的分布"><a href="#2、Replica在集群内的分布" class="headerlink" title="2、Replica在集群内的分布"></a><strong>2、Replica在集群内的分布</strong></h4><p>Kafka分配Replica的算法如下：</p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;将所有Broker（假设共n个Broker）和待分配的Partition排序<br>将第i个Partition分配到第（i mod n）个Broker上<br>将第i个Partition的第j个Replica分配到第（(i + j) mode n）个Broker<br>下面在一个节点数为3的集群内测试，创建一个名为topic_test的topic，Partition数为10，Replica数为3，在kafka-mananger查看其分布情况如下:<br><img src="http://i.imgur.com/2NuIeYN.png" alt=""></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;从图中可以看出，kafka从每个分区的三个Replica中选出了一个leader，同时，三个Replica均匀的分布在不同的节点上。接下来我们把其中几个结点给kill掉，看看之后kafka集群会进行什么操作：</p>
-<p><img src="http://i.imgur.com/edtMpFw.png" alt=""></p>
-<p>&#160;&#160;&#160;&#160;从图中可以看出，3号结点被kill掉之后，原先leader为3号结点的Partition重新选举了leader，并且所有Partition的isr列表中都移除了3号结点。</p>
-<p>此外如果出现leader分布不均匀的情况，我们需要手动重新进行分区的分配，如以下这种情况：</p>
-<p><img src="http://i.imgur.com/FtbCL0a.png" alt=""></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;所有分区的leader都是3号结点，这样会造成客户端与kafka通信时，只和3号结点进行通信，同时所有Replica也从3号结点不断fetch数据，系统的所有压力都汇聚的3号结点上。这时，可以在kafka-manager通过点击Generate Partition Assignment和Reassign Partition，重新分配Partition，并选举新的leader。</p>
-<h4 id="3、leader的选举"><a href="#3、leader的选举" class="headerlink" title="3、leader的选举"></a><strong>3、leader的选举</strong></h4><p> &#160;&#160;&#160;&#160;&#160;&#160;&#160;Kafka在Zookeeper中动态维护了一个ISR（in-sync replicas），这个ISR里的所有Replica都跟上了leader，只有ISR里的成员才有被选为Leader的可能，如果一个follower宕机，kafka就会把它从ISR列表中移除，follower是否存活的session时长由server.properties中的replica.lag.time.max.ms值来决定，来判断follower是否存活。在这种模式下，对于n+1个Replica，一个Partition能在保证不丢失已经commit的消息的前提下容忍n个Replica的失败。查看zookeeper下相关的结点信息如下图：</p>
-<p><img src="http://i.imgur.com/QrnksVQ.png" alt=""></p>
-<p>图中是Partition0的当前state信息，可以看到zk中记录了当前的leader信息和isr列表信息。<br>注：kafka的leader和replica通过controller来控制，具体实现细节需阅读controller相关源码后再分析。</p>
+        <p><strong>序言：</strong></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们在运行java应用程序时，经常会遇到OutOfMemoryError的内存溢出问题，而且在代码量大逻辑复杂的系统里，要定位内存溢出的代码段是一个很让人困扰的问题。下面来看一种通过获取堆转储文件的形式来分析内存溢出的方法。<br><a id="more"></a><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们先编写一个demo,创建一个名为User的实体类，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">public class User &#123;</div><div class="line">    private int id;</div><div class="line">    private String name;</div><div class="line">    private String phone;</div><div class="line">    private String email;</div><div class="line"></div><div class="line">    public User(int id, String name, String phone, String email) &#123;</div><div class="line">        this.id = id;</div><div class="line">        this.name = name;</div><div class="line">        this.phone = phone;</div><div class="line">        this.email = email;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    public int getId() &#123;</div><div class="line">        return id;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    public void setId(int id) &#123;</div><div class="line">        this.id = id;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">/**</div><div class="line"> * 堆转储测试类</div><div class="line"> * */</div><div class="line">public class Test_Heap_Dump &#123;</div><div class="line">    public static void main(String args[])&#123;</div><div class="line">        User user;</div><div class="line">        List&lt;User&gt; list = new ArrayList&lt;User&gt;();</div><div class="line">        for (int i=1; i&lt;=10000000; i++) &#123;</div><div class="line">            user = new User(i,&quot;test&quot;+i+&quot;&quot;,&quot;1234567&quot;+i+&quot;&quot;,&quot;email&quot;);</div><div class="line">            list.add(user);</div><div class="line">            System.out.println(&quot;size : &quot; + i);</div><div class="line">            Runtime runtime = Runtime.getRuntime();</div><div class="line">            System.out.printf(&quot;maxMemory : %.2fM\n&quot;, runtime.maxMemory()*1.0/1024/1024);</div><div class="line">            System.out.printf(&quot;totalMemory : %.2fM\n&quot;, runtime.totalMemory()*1.0/1024/1024);</div><div class="line">            System.out.printf(&quot;freeMemory : %.2fM\n&quot;, runtime.freeMemory()*1.0/1024/1024);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;然后编写一个测试方法，循环创建一千万个User对象，存储于一个List内。之后设置Idea的运行选项，在VM options内加入:</p>
+<p>-Xmx40m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/Users/yangml/Desktop</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们这里设置了-Xmx最大堆内存大小为40m是为了减小JVM堆内存的大小，使测试方法可以比较简单的触发OutOfMemoryError。后面的两个选项是设置堆转储的关键点，-XX:+HeapDumpOnOutOfMemoryError的作用是JVM在遇到OutOfMemoryError时会拍摄一个“堆内存快照”，这个快照就是将当前JVM的堆内存，并将其转储后面HeadDumpPath指定的目录下。接着运行程序，一段时间后，抛出了OnOutOfMemoryError异常：</p>
+<p><img src="http://smartyml.com/imgs/2016-09-18_1" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;同时，在指定目录下生成了一个java_pid29013.hprof文件，这是一个二进制文件，需要使用其他工具来打开它，这里我们使用JProfiler来打开，打开后如下图：</p>
+<p><img src="http://smartyml.com/imgs/2016-09-18_2" alt="image"></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;可以看到创建了十分多的User类实例对象，并且没有被垃圾回收器回收，因此可以断定程序在某个地方创建了大量的User对象，并且没有被及时的回收。</p>
 
       
     </div>
@@ -338,7 +338,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/kafka/" rel="tag">#kafka</a>
+            <a href="/tags/JVM/" rel="tag">#JVM</a>
           
         </div>
       
@@ -347,17 +347,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/08/19/Kafka自定义消息的序列化与反序列化/" rel="next" title="Kafka自定义消息的序列化与反序列化">
-                <i class="fa fa-chevron-left"></i> Kafka自定义消息的序列化与反序列化
+              <a href="/2016/09/16/kafka-offset-commit-java客户端源码/" rel="next" title="kafka offset commit java客户端源码">
+                <i class="fa fa-chevron-left"></i> kafka offset commit java客户端源码
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/08/26/java通过zookeeper实现分布式锁/" rel="prev" title="java通过zookeeper实现分布式锁">
-                java通过zookeeper实现分布式锁 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -482,7 +478,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、Replica和leader的关系"><span class="nav-number">1.</span> <span class="nav-text">1、Replica和leader的关系</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2、Replica在集群内的分布"><span class="nav-number">2.</span> <span class="nav-text">2、Replica在集群内的分布</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3、leader的选举"><span class="nav-number">3.</span> <span class="nav-text">3、leader的选举</span></a></li></ol></div>
+              <p class="post-toc-empty">此文章未包含目录</p>
             
           </div>
         </section>

@@ -68,7 +68,7 @@
 <link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="kettle," />
+  <meta name="keywords" content="Hexo, NexT" />
 
 
 
@@ -84,22 +84,15 @@
 
 
 
-<meta name="description" content="需求：从服务器上pgsql的一张表抽取100条数据插入到本地mysql对应表中，表名可以自己通过命令行传参指定。">
-<meta property="og:type" content="article">
-<meta property="og:title" content="kettle 命令行传参">
-<meta property="og:url" content="https://github.com/smart1993.github.io/2016/09/10/kettle-命令行传参/index.html">
+<meta name="description" content="在生活中追逐梦想">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Smart's Blog">
+<meta property="og:url" content="https://github.com/smart1993.github.io/categories/性能调优/index.html">
 <meta property="og:site_name" content="Smart's Blog">
-<meta property="og:description" content="需求：从服务器上pgsql的一张表抽取100条数据插入到本地mysql对应表中，表名可以自己通过命令行传参指定。">
-<meta property="og:image" content="https://smart1993.github.io/imgs/2016-09-10_1.png">
-<meta property="og:image" content="https://smart1993.github.io/imgs/2016-09-10_2.png">
-<meta property="og:image" content="https://smart1993.github.io/imgs/2016-09-10_3.png">
-<meta property="og:image" content="https://smart1993.github.io/imgs/2016-09-10_4.png">
-<meta property="og:image" content="https://smart1993.github.io/imgs/2016-09-10_5.png">
-<meta property="og:updated_time" content="2016-09-10T12:11:39.000Z">
+<meta property="og:description" content="在生活中追逐梦想">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="kettle 命令行传参">
-<meta name="twitter:description" content="需求：从服务器上pgsql的一张表抽取100条数据插入到本地mysql对应表中，表名可以自己通过命令行传参指定。">
-<meta name="twitter:image" content="https://smart1993.github.io/imgs/2016-09-10_1.png">
+<meta name="twitter:title" content="Smart's Blog">
+<meta name="twitter:description" content="在生活中追逐梦想">
 
 
 
@@ -117,7 +110,7 @@
   };
 </script>
 
-  <title> kettle 命令行传参 | Smart's Blog </title>
+  <title> 分类: 性能调优 | Smart's Blog </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -138,7 +131,7 @@
     
   
 
-  <div class="container one-collumn sidebar-position-left page-post-detail ">
+  <div class="container one-collumn sidebar-position-left  ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -226,153 +219,47 @@
           <div id="content" class="content">
             
 
-  <div id="posts" class="posts-expand">
-    
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                kettle 命令行传参
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-09-10T19:53:01+08:00" content="2016-09-10">
-              2016-09-10
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/kettle/" itemprop="url" rel="index">
-                    <span itemprop="name">kettle</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        <p>需求：从服务器上pgsql的一张表抽取100条数据插入到本地mysql对应表中，表名可以自己通过命令行传参指定。<br><a id="more"></a></p>
-<p>新建一个转换如下图：</p>
-<p><img src="https://smart1993.github.io/imgs/2016-09-10_1.png" alt="image"></p>
-<p>表输入的配置如下如下：<br><img src="https://smart1993.github.io/imgs/2016-09-10_2.png" alt="image"></p>
-<p>其中的sql语句是一条动态sql，表名的写法是${table}，表示使用命名参数table，接下来我们需要设置命名参数。</p>
-<p>先新建一个job，在job的属性里设置命名参数：<br><img src="https://smart1993.github.io/imgs/2016-09-10_3.png" alt="image"></p>
-<p>然后将转换拖入这个job：<br><img src="https://smart1993.github.io/imgs/2016-09-10_4.png" alt="image"></p>
-<p>保存得到job.kjb文件，然后在kettle的安装目录下运行kettle.sh，命令如下：</p>
-<p><strong><strong>./kitchen.sh -file /Users/yangml/Desktop/项目资料/各种项目/ 百胜项目/kettle\ 测试/测试job.kjb “-param:table=user1”</strong></strong></p>
-<p>-file 后写需要执行的job文件的路径，”-param:key=value”为传入的参数，key的名称要和我们在job或转换里设置的命名参数名称对应。最后的执行结果如下：<br><img src="https://smart1993.github.io/imgs/2016-09-10_5.png" alt="image"></p>
-
-      
+  <section id="posts" class="posts-collapse">
+    <div class="collection-title">
+      <h2 >
+        性能调优
+        <small>分类</small>
+      </h2>
     </div>
 
-    <div>
+    
       
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <h1 class="post-title">
         
-      
-    </div>
-
-    <div>
-      
+            <a class="post-title-link" href="/2016/09/18/使用堆转储文件分析java内存溢出问题/" itemprop="url">
+              
+                <span itemprop="name">使用堆转储文件分析java内存溢出问题</span>
+              
+            </a>
         
+      </h1>
 
-      
-    </div>
+      <div class="post-meta">
+        <time class="post-time" itemprop="dateCreated"
+              datetime="2016-09-18T22:38:21+08:00"
+              content="2016-09-18" >
+          09-18
+        </time>
+      </div>
 
-    <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/kettle/" rel="tag">#kettle</a>
-          
-        </div>
-      
-
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2016/09/10/linux配置防火墙允许80端口访问/" rel="next" title="linux配置防火墙允许80端口访问">
-                <i class="fa fa-chevron-left"></i> linux配置防火墙允许80端口访问
-              </a>
-            
-          </div>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/09/11/kettle-使用java代码处理业务/" rel="prev" title="kettle 使用java代码处理业务">
-                kettle 使用java代码处理业务 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
-    </footer>
+    </header>
   </article>
 
 
+    
+  </section>
 
-    <div class="post-spread">
-      
-    </div>
-  </div>
+  
+
 
 
           </div>
@@ -380,10 +267,6 @@
 
 
           
-  <div class="comments" id="comments">
-    
-  </div>
-
 
         </div>
         
@@ -403,17 +286,8 @@
       
 
       
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
-            文章目录
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            站点概览
-          </li>
-        </ul>
-      
 
-      <section class="site-overview sidebar-panel ">
+      <section class="site-overview sidebar-panel  sidebar-panel-active ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/uploads/avatar.JPG"
@@ -474,17 +348,6 @@
 
       </section>
 
-      
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-            
-              
-            
-            
-              <p class="post-toc-empty">此文章未包含目录</p>
-            
-          </div>
-        </section>
       
 
     </div>
@@ -581,10 +444,6 @@
   
 
   
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
-
-
 
   
 
