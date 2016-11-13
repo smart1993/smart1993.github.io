@@ -1,0 +1,612 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="数据库," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="序言：最近一个多月都忙于YUM中国的报表项目，我主要负责从YUM的几个业务生产数据库抽取数据，ETL处理后导入的GreenPlum数据库中，为报表平台以及其他数据分析团队提供数据。这是第一次实际参与数据仓库的搭建开发，整个项目磕磕绊绊，进行的不是很顺利，还好最后通过自己的努力和同事们的帮助，最终也算基本完成了客户的需求。整个项目收获了很多技术知识和实践经验，在这里整理做一个简单的记录。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GreenPlum数据仓库搭建实践(yum项目总结)">
+<meta property="og:url" content="https://github.com/smart1993.github.io/2016/11/13/GreenPlum数据仓库搭建实践-yum项目总结/index.html">
+<meta property="og:site_name" content="Smart's Blog">
+<meta property="og:description" content="序言：最近一个多月都忙于YUM中国的报表项目，我主要负责从YUM的几个业务生产数据库抽取数据，ETL处理后导入的GreenPlum数据库中，为报表平台以及其他数据分析团队提供数据。这是第一次实际参与数据仓库的搭建开发，整个项目磕磕绊绊，进行的不是很顺利，还好最后通过自己的努力和同事们的帮助，最终也算基本完成了客户的需求。整个项目收获了很多技术知识和实践经验，在这里整理做一个简单的记录。">
+<meta property="og:image" content="https://smart1993.github.io/imgs/2016-11-13_1.png">
+<meta property="og:image" content="https://smart1993.github.io/imgs/2016-11-13_2.png">
+<meta property="og:updated_time" content="2016-11-13T04:00:47.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="GreenPlum数据仓库搭建实践(yum项目总结)">
+<meta name="twitter:description" content="序言：最近一个多月都忙于YUM中国的报表项目，我主要负责从YUM的几个业务生产数据库抽取数据，ETL处理后导入的GreenPlum数据库中，为报表平台以及其他数据分析团队提供数据。这是第一次实际参与数据仓库的搭建开发，整个项目磕磕绊绊，进行的不是很顺利，还好最后通过自己的努力和同事们的帮助，最终也算基本完成了客户的需求。整个项目收获了很多技术知识和实践经验，在这里整理做一个简单的记录。">
+<meta name="twitter:image" content="https://smart1993.github.io/imgs/2016-11-13_1.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> GreenPlum数据仓库搭建实践(yum项目总结) | Smart's Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">Smart's Blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                GreenPlum数据仓库搭建实践(yum项目总结)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-11-13T11:37:15+08:00" content="2016-11-13">
+              2016-11-13
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><strong>序言：</strong><br>最近一个多月都忙于YUM中国的报表项目，我主要负责从YUM的几个业务生产数据库抽取数据，ETL处理后导入的GreenPlum数据库中，为报表平台以及其他数据分析团队提供数据。这是第一次实际参与数据仓库的搭建开发，整个项目磕磕绊绊，进行的不是很顺利，还好最后通过自己的努力和同事们的帮助，最终也算基本完成了客户的需求。整个项目收获了很多技术知识和实践经验，在这里整理做一个简单的记录。<br><a id="more"></a></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;整个项目中我负责数据的迁移和关联计算。我从数据迁移部分开始总结，首先数据迁移的目的是什么呢？举个例子，当数据分析团队需要对最近的订单数据做数据分析时，必然需要从数据库内获取数据，很多时候还需要实现复杂的关联SQL完成数据查询，这时候如果直接对线上生产库做类似操作，会增大生产库的压力，造成锁表、锁行甚至数据库崩溃，所以我们需要将生产库内的数据迁移到另外一个数据库，这个数据库定时从生产库同步数据，为其他业务系统如报表平台、运维团体以及数据挖掘分析团队提供数据，处于需要迁移的数据的数据源位于YUM的各个业务部门的生产库内。</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;YUM项目中数据源库类型主要是SQLServer和PostgreSQL两种，我利用迁移工具从数据源按需求导出所需数据到GreenPlum的目标库内，迁移工具包括kettle、jenkins、shell脚本、存储过程以及java应用程序。以下为数据迁移的简易流程图：</p>
+<div align="center"><br><img src="https://smart1993.github.io/imgs/2016-11-13_1.png" alt="image"><br></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;整个迁移流程十分简单，但其中涉及到一些性能要求、设计方案以及实践经验还是值得我好好记录一下的。<br><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;<strong>第一点是水位表的使用</strong>。一般数据迁移是根据时间短来迁移的，YUM项目中是以天为单位进行迁移，比如每天凌晨定时对前一天生成的业务数据进行迁移。那么又要通过什么来判断生存库和数据仓库的数据是否达到同步呢，这里就通过查询水位表的方式来比对。以下是YUM项目内的水位表结构：<br><div align="center"><br><img src="https://smart1993.github.io/imgs/2016-11-13_2.png" alt="image"><br></div>
+
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们通过查询水位表信息，查询当前的水位信息，得到最接近当前并且执行成功的bizdate，这就是当前同步数据操作所达到的日期，这个日期到当前日期的差值就是同步差，也就是我们接下来任务需要执行迁移数据的日期范围。当然这只是一个最简单的场景，实际操作还要根据业务需求的不同设计不同的水位表结构，或者进行不同的查询操作。但总而言之，水位表的目的是获得生产库与数据仓库数据同步的差值。此外，水位表内的数据也是后期运维的一个重要数据。</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;<strong>第二点是大数据表的迁移方案。</strong>YUM生产库中有几张数据量比较大的表，比如用户和订单相关的表，数据量在千万级别，落地到本地文件的大小在二三十G左右。如果采用简单的SQL导入导出肯定是不行的。我在这里的设计是，可以增量抽取的数据(每天几十万条记录)表利用kettle将数据从源数据表中落地到本地文件(kettle是java语音编写的ETL工具，数据抽取的底层代码实现是JDBC)，再利用GreenPlum的GPload工具导入到GreenPlum中。而几张存储在PostgreSQL中的大表，利用psql的copy命令，从pg内导出到本地文件，并利用GZIP对文件进行压缩，20G的数据经压缩后大小为4-5G，再利用GPload导入。目前实际运行的结果是，大小在25G的5000万条记录的用户表从pg内导出再导入到另一台机器的GreenPlum集群耗时在10分钟左右。补充一句，大表迁移的性能也受网络IO、硬盘IO和CPU核数等硬件性能影响。以上是我在本次项目中对于大表数据迁移的经验，其实这里的数据量也不是真正的TB/PB级别的大数据，但我也第一次对大数据仓库的建设与数据迁移方案的设计有了一个清晰的认识。</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;<strong>第三点是对GreenPlum分布式数据库的认识。</strong>GreenPlum有一个主节点和多个计算节点。主节点接收客户端的请求，然后将查询和计算的任务分配给各个计算节点，计算节点进行查询和计算后将结果集返回给主节点进行汇总操作，然后返回给客户端。GreenPlum的数据表会根据建表语句指定的分布键(可以是一个字段，也可以是组合字段)，对记录的分布键字段值做hash计算，然后根据hash值分配到各个计算节点，这样可以利用集群的优势提升大数据表的查询和计算性能。此外，我们还可以对大数据表做分区操作，将一张大表分为多张子表，也可以提升查询的效率，下面我们从一条实际的SQL来看一看分区和分布的实际作用效果:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">SELECT  *</div><div class="line">FROM dwbi03.T_Order t</div><div class="line">LEFT JOIN  dwbi03.T_OrderStatus os On os.orderid = t.id</div><div class="line">LEFT JOIN dwbi01.dbo_dim_store s ON s.storecode = lt.storecode</div><div class="line">LEFT JOIN dwbi01.kfc_fact_tldheader k ON k.orderid = t.id</div><div class="line">LEFT JOIN dwbi03.kfc_dim_member m ON m.usercode = t.usercode</div><div class="line">WHERE 1=1</div><div class="line">AND t.time_id &gt; 605600</div><div class="line">AND t.time_id &lt; 605700   //time_id是orderdate的时间戳截取得到的六位整型</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这是YUM项目的一条SQL，以订单表为主表，关联订单状态表、订单事实表、门店维度表和会员信息表，除了门店表其他几张都是大表。如果我们不做任何分区分布处理，这条sql的执行速度会非常慢，我接下来先尝试进行分区操作。根据T_Order和T_OrderStatus表的time_id字段创建分区表，分区表需要在创建主表时一同创建，在主表的建表语句后添加如下创建分区表语句：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">partition by range( time_id )</div><div class="line">(</div><div class="line">PARTITION t6056 START(605600) END(605700)，</div><div class="line">PARTITION t6057 START(605700) END(605800)，</div><div class="line">PARTITION t6058 START(605800) END(605900)，</div><div class="line">PARTITION t6059 START(605900) END(606000)，</div><div class="line">...</div><div class="line">)</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;当然如果要创建大量的分区表，可以使用shell脚本用循环拼接好建表语句，在使用psql-c命令去执行。有了分区表以后再来看看这条sql的执行过程，原来需要对主表T_Order做全表扫描得到where条件内的记录，但现在以time_id为range创建了分区表以后，查询条件为分区字段时，gp就会直接去对应所在分区表的节点上取数据，而不需要做全表扫描。<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;再来看看分布的作用。分布策略就是你希望数据表内的数据以什么样的策略分布在GreenPlum的集群内，我第一次建表时采用distributed randomly策略，由GreenPlum自己去分布数据。但是在执行这条sql关联时，发现执行速度很慢，做explain后发现，由于数据是随机分布的，GreenPlum在进行大表的join操作时，会将关联字段作为分布键进行重分布操作然后再进行join计算，explain内关于重分布的语句如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">-&gt; Redistribute Motion 24:24 (slice10; segments: 24) (cost=452555245.69..507714759.26 rows=2 width=564) Hash Key: os.orderid::text</div><div class="line">-&gt; Hash Left Join (cost=452555245.69..507714758.60 rows=2 width=564)</div></pre></td></tr></table></figure></p>
+<p>可以看到gp在执行T_Order和T_OrderStatus的join计算前，先将T_OrderStatus表根据关联字段orderid做重分布处理，这样会比较耗时，因为存在数据的网络传输和数据文件的读写操作。所以我们可以以那些经常作为关联字段的字段作为分布键在建表时就实现分布，避免关联计算时出现重分布，分布策略实现如下：<br>distributed by(orderid)</p>
+<p>此外gp在关联小表计算时，采用广播的策略，就是将数据广播给所有计算节点进行join计算。explain语句如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">-&gt; Hash (cost=1.25..1.25 rows=1 width=36)</div><div class="line">-&gt; Broadcast Motion 24:24 (slice3; segments: 24) (cost=0.00..1.25 rows=1 width=36)</div><div class="line">-&gt; Seq Scan on dbo_dim_store s (cost=0.00..1.00 rows=1 width=36)</div></pre></td></tr></table></figure>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;以上就是我第一次实践搭建数据仓库的几点心得，可能这个数据仓库规模还很小，但是这个项目也让我了解了数据仓库的概念、用途、搭建流程以及相关注意点，希望以后能够参与更多数据量更大、技术挑战更大的实际项目。</p>
+<p><strong>相关资料链接：</strong></p>
+<p>《Greenplum 数据分布黄金法则 - 论分布列与分区的选择》<a href="https://yq.aliyun.com/articles/57822" target="_blank" rel="external">https://yq.aliyun.com/articles/57822</a><br>《数据仓库架构的变迁》<a href="https://segmentfault.com/a/1190000007419222" target="_blank" rel="external">https://segmentfault.com/a/1190000007419222</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/数据库/" rel="tag">#数据库</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/10/11/greenplum-利用gpload导入数据/" rel="next" title="greenplum 利用gpload导入数据">
+                <i class="fa fa-chevron-left"></i> greenplum 利用gpload导入数据
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/avatar.JPG"
+               alt="smart" />
+          <p class="site-author-name" itemprop="name">smart</p>
+          <p class="site-description motion-element" itemprop="description">在生活中追逐梦想</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">13</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/smart1993" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                  GitHub
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <p class="post-toc-empty">此文章未包含目录</p>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">smart</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+  
+  
+  
+
+  
+
+  
+
+</body>
+</html>
