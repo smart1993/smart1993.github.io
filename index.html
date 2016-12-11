@@ -249,6 +249,156 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+  <link itemprop="mainEntityOfPage" href="https://github.com/smart1993.github.io/2016/12/11/java-读取文件详解/">
+
+  <span style="display:none" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <meta itemprop="name" content="smart">
+    <meta itemprop="description" content="">
+    <meta itemprop="image" content="/images/avatar.png">
+  </span>
+
+  <span style="display:none" itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+    <meta itemprop="name" content="Smart's Blog">
+    <span style="display:none" itemprop="logo" itemscope itemtype="http://schema.org/ImageObject">
+      <img style="display:none;" itemprop="url image" alt="Smart's Blog" src="">
+    </span>
+  </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/12/11/java-读取文件详解/" itemprop="url">
+                  java 读取文件详解
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-12-11T23:26:56+08:00">
+              2016-12-11
+            </time>
+
+            &nbsp;|&nbsp;
+
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-check-o"></i>
+            </span>
+            <time title="Post modified" itemprop="dateModified" datetime="2016-12-11T23:35:27+08:00">
+              2016-12-11
+            </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+
+          
+          
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><strong>序言：</strong><br>最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们都知道，利用java读取文件可以使用IO包或者NIO包下相应的一些类去完成操作，主要有传统IO字节流读取、NIO文件管道方式读取和NIO内存映射方式读取三种读取文件方式。我写了一个demo利用这三种方式分别读取一个11G的txt文件，看看三种方式读取文件的时间消耗、内存消耗等情况以及相关实现原理。<br>1、IO字节流读取<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;代码如下：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;第一种方式使用IO包下的FileInputStream流读取文件数据，再利用BufferedInputStream作为一个缓冲区，文件数据通过FileInputStream先写入缓冲区，然后应用程序直接从缓冲区内读取数据，这样可以减少磁盘的IO次数，提高读取的速率(和直接从FileInputStream中读取相比)。为什么利用缓冲区能减少磁盘io的次数并提高速率了，我们来通过JDK1.8的BufferedInputStream源码做一下简单的分析。<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;BufferedInputStream继承于FileInputStream类，并重写了其read(byte b[],int off, int len)方法，再看一下几个重要的属性：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">private static int DEFAULT_BUFFER_SIZE = 8192;//缓冲区默认大小</div><div class="line">private static int MAX_BUFFER_SIZE = Integer.MAX_VALUE - 8;//缓冲区最大值</div><div class="line">protected volatile byte buf[];//缓冲数组</div><div class="line">protected int count;//当前读入数据的总数</div><div class="line">protected int pos;//当前数据读取的位置</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;然后看一下read的过程：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;从图中我们可以看到我们使用BufferedInputStream读取文件数据的过程中，它read方法首先判断缓冲区是否已读完，判断的源码是这句代码：<br>int avail = count - pos; //如果avail大于0,则未读完，否则已读完<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;如果已读完，则会调用fill()方法，这个方法也是很重要的一个方法，它的作用有两个，第一个是当缓冲区内的数据被读完以后，调用FileInputStream的read方法从磁盘上继续读取新的数据到缓冲区中；第二个是，如果应用程序读取数据的size大于当前缓冲数组buf的size，就将缓冲数组进行扩容，使后者大于前者(最大值为MAX_BUFFER_SIZE)，然后再从磁盘读取数据。保证缓冲数组的size大于应用程序读取数据的size是实现所谓缓冲概念的关键，我们举例说明一下：<br>假设我们要读取一个1G的文件，应用程序每次读取1024字节的数据：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">byte[] tempbytes = new byte[1024];</div><div class="line">while(bin.read(tempbytes)!=-1)&#123;</div><div class="line">size += new String(tempbytes,&quot;utf-8&quot;).length();</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;此时缓冲数组大小是8192字节，那么这个while循环每循环8次就读完一次缓冲数组，然后就需要再去磁盘文件读取8192字节的数据到缓冲数组内，所以读完1G的数据对磁盘进行IO操作的次数是：<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;磁盘IO次数 = 1G/8192b =  1024<em>128次<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;但是如果不使用缓冲数组，而是直接使用FileInputStream去读取的话，则磁盘IO操作次数为：<br> &#160;&#160;&#160;&#160;&#160;&#160;&#160;磁盘IO次数 = 1G/1024b =  1024</em>1024次<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;可以看的出来，前者对于磁盘的IO操作次数比后者小了8倍。推广到普遍的情况下则这个比值等于<br>缓冲数组size/应用程序读取size。<br>2、文件管道方式读取<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;代码如下：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;从图中可以看到，我们在创建了文件输入流FileInputStream以后，通过输入流对象获得了一个FileChannel对象，然后调用FileChannel的read方法，将数据读取到ByteBuffer对象中。NIO实现文件高速读取的原理也是使用了缓冲区的概念，但是和IO包自己实现缓冲功能不同的是，NIO包的缓冲实现是由底层的操作系统直接实现的，更加的高效。此外，IO包的read模式是面向数据流的，使用for循环一次读取一个字节完成一次数据的读取操作，以下是InputStream类的read方法读取数据的相关源码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">for (; i &lt; len ; i++) &#123;</div><div class="line">    c = read();</div><div class="line">    if (c == -1) &#123;</div><div class="line">        break;</div><div class="line">    &#125;</div><div class="line">    b[off + i] = (byte)c;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;而NIO是面向数据块的，NIO底层的read实现是在sun jdk中的，一步步查看下去发现在IOUtil类中可以发现NIO确实是以块为单位读取数据，这是IOUtile类的read方法：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们分析一下这段源码。首先var1变量是ByteBuffer对象，也就是我们程序中的buf对象，然后在try语句体内，调用了readIntoNativeBuffer方法，这个方法会读取文件数据到ByteBuffer中(var5)，方法内部的实现代码如下：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;可以看到pread和read方法都是读取内存内的一个地址段(address+一个long值)，对应就是一块数据。再往下的实现是native方法了我就没有再深入看下去。此时系统的文件数据读取到了var5这个ByteBuffer中，之后可以看到这句代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">var1.put(var5)；</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这里将readIntoNativeBuffer方法内读取出的块数据放入我们传进去的ByteBuff中，到这里就完成了一次nio的块数据读取。<br>3、内存映射方法读取<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;代码如下：</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们先了解一下所谓内存映射的原理机制，这涉及到linux的内存管理机制，我通过网上资料和相关书籍简单的学习了解一下，下面做一个简单的介绍。<br>首先linux操作系统有两个内存概念，一个是物理内存，就是物理内存条上的空间；另一个则是虚拟内存，这是一种内存管理技术。下面是一段摘抄自网上的资料，简单的介绍了虚拟内存技术：<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;通过内存地址虚拟化，可以使得软件在没有访问某虚拟内存地址时不分配具体的物理内存，而只有在实际访问某虚拟内存地址时，操作系统再动态地分配物理内存，建立虚拟内存到物理内存的页映射关系，这种技术属于lazy load技术，简称按需分页（demand paging）。把不经常访问的数据所占的内存空间临时写到硬盘上，这样可以腾出更多的空闲内存空间给经常访问的数据；当CPU访问到不经常访问的数据时，再把这些数据从硬盘读入到内存中，这种技术称为页换入换出（page swap in/out）。两个虚拟页的数据内容相同时，可只分配一个物理页框，这样如果对两个虚拟页的访问方式是只读方式，这这两个虚拟页可共享页框，节省内存空间；如果CPU对其中之一的虚拟页进行写操作，则这两个虚拟页的数据内容会不同，需要分配一个新的物理页框，并将物理页框标记为可写，这样两个虚拟页面将映射到不同的物理页帧，确保整个内存空间的正确访问。这种技术称为写时复制（Copy On Write，简称COW）。这三种内存管理技术给了程序员更大的内存“空间”，我们称为内存空间虚拟化。<br>(<a href="https://chyyuu.gitbooks.io/ucorebook/content/zh/chapter-3/virtual_mem_managment.html" target="_blank" rel="external">https://chyyuu.gitbooks.io/ucorebook/content/zh/chapter-3/virtual_mem_managment.html</a>)<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;了解了内存映射的相关原理以后，看看nio内如何利用这个技术。我们在获得FileChannel对象以后，调用filechannel的map方法讲文件内的一段数据映射到虚拟内存上，并获得一个MappedByteBuffer对象，内部实现内存映射的方法是一个native方法map0()方法。这样我们就建立了从虚拟内存到物理内存地址的映射，也就可以直接访问到硬盘上的数据，内存映射读取文件的好处是减少了数据在操作系统内copy的次数，具体原理如下：<br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;首先我们调用read()方法实际上底层是调用了系统层面的read方法()，此时已经切换到了内核态，并且内核的read()方法首先会将数据copy到缓冲空间内，再由缓存空间内copy到用户空间内，这样就意味着进行了两次数据copy；而如果先建立了用户空间到磁盘文件的映射关系，就不需要再调用系统的read()方法，可以直接从内核空间将数据copy到用户空间，减少了一次数据copy。此外在建立映射时并不会进行数据的copy，第一次读取数据时检测到缺页中断，然后系统根据映射关系将数据copy到用户空间，应用程序就可以直接读取数据了，直到下次发生缺页中断，再进行一次数据copy，重复直到数据读取完毕。所以map()方法在效率上比read()方法更高。<br>虽然使用MappedByteBuffer能实现更高的效率，但是要注意，MappedByteBuffer使用的是虚拟内存，并不是java的堆内存，其内存的消耗和使用情况无法通过监控jvm等方法来实现，使用它时要注意内存使用情况。<br>最后我测试了这三种读取方式读取同一个大小为11G的txt文件的速度，测试结果如下：</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
   <link itemprop="mainEntityOfPage" href="https://github.com/smart1993.github.io/2016/11/30/Kafka的网络通信机制/">
 
   <span style="display:none" itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -297,7 +447,7 @@
             <span class="post-meta-item-icon">
               <i class="fa fa-calendar-check-o"></i>
             </span>
-            <time title="Post modified" itemprop="dateModified" datetime="2016-11-30T09:42:17+08:00">
+            <time title="Post modified" itemprop="dateModified" datetime="2016-11-30T17:53:30+08:00">
               2016-11-30
             </time>
             
@@ -312,8 +462,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/数据库/" itemprop="url" rel="index">
-                    <span itemprop="name">数据库</span>
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
                   </a>
                 </span>
 
@@ -1541,162 +1691,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-  <link itemprop="mainEntityOfPage" href="https://github.com/smart1993.github.io/2016/08/26/java通过zookeeper实现分布式锁/">
-
-  <span style="display:none" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <meta itemprop="name" content="smart">
-    <meta itemprop="description" content="">
-    <meta itemprop="image" content="/images/avatar.png">
-  </span>
-
-  <span style="display:none" itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-    <meta itemprop="name" content="Smart's Blog">
-    <span style="display:none" itemprop="logo" itemscope itemtype="http://schema.org/ImageObject">
-      <img style="display:none;" itemprop="url image" alt="Smart's Blog" src="">
-    </span>
-  </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/08/26/java通过zookeeper实现分布式锁/" itemprop="url">
-                  java通过zookeeper实现分布式锁
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-08-26T00:21:15+08:00">
-              2016-08-26
-            </time>
-
-            &nbsp;|&nbsp;
-
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-check-o"></i>
-            </span>
-            <time title="Post modified" itemprop="dateModified" datetime="2016-08-26T00:31:20+08:00">
-              2016-08-26
-            </time>
-            
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/zookeeper/" itemprop="url" rel="index">
-                    <span itemprop="name">zookeeper</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/zookeeper/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-
-          
-          
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p><strong>序言：</strong><br>我们知道在多线程环境中，线程对于资源的竞争和共享十分激烈，开发者需要设计合理的锁机制来控制线程对于资源的访问。而在分布式集群系统中，资源的访问对象则很有可能是多个进程(多台机器)，我们需要一种锁机制来实现对分布式的进程的资源访问控制，这种锁机制叫做分布式锁，而实现分布式锁，最常用的方法是借助zookeeper实现。假设我们的分布式应用部署在集群内的10台机器上，而这10台机器上的应用需要对同一个redis实例内的一个key进行读写操作，我们看看如何借助zookeeper的分布式锁实现资源读写的原子性。业务场景的流程图如下：<br>
-          <!--noindex-->
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/08/26/java通过zookeeper实现分布式锁/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1742,7 +1736,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">15</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -1750,7 +1744,7 @@
           
             <div class="site-state-item site-state-categories">
               <a href="/categories">
-                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-count">10</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
