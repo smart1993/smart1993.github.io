@@ -84,12 +84,12 @@
 
 
 
-<meta name="description" content="序言：最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。">
+<meta name="description" content="序言：&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="java 读取文件详解">
 <meta property="og:url" content="https://github.com/smart1993.github.io/2016/12/11/java-读取文件详解/index.html">
 <meta property="og:site_name" content="Smart's Blog">
-<meta property="og:description" content="序言：最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。">
+<meta property="og:description" content="序言：&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2016-12-11_1.png">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2016-12-11_2.png">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2016-12-11_3.png">
@@ -97,10 +97,10 @@
 <meta property="og:image" content="https://smart1993.github.io/imgs/2016-12-11_5.png">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2016-12-11_6.png">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2016-12-11_7.png">
-<meta property="og:updated_time" content="2016-12-11T15:55:21.000Z">
+<meta property="og:updated_time" content="2016-12-11T15:59:55.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="java 读取文件详解">
-<meta name="twitter:description" content="序言：最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。">
+<meta name="twitter:description" content="序言：&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。">
 <meta name="twitter:image" content="https://smart1993.github.io/imgs/2016-12-11_1.png">
 
 
@@ -301,7 +301,7 @@
             <span class="post-meta-item-icon">
               <i class="fa fa-calendar-check-o"></i>
             </span>
-            <time title="Post modified" itemprop="dateModified" datetime="2016-12-11T23:55:21+08:00">
+            <time title="Post modified" itemprop="dateModified" datetime="2016-12-11T23:59:55+08:00">
               2016-12-11
             </time>
             
@@ -352,7 +352,7 @@
       
 
       
-        <p><strong>序言：</strong><br>最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。<br><a id="more"></a><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们都知道，利用java读取文件可以使用IO包或者NIO包下相应的一些类去完成操作，主要有传统IO字节流读取、NIO文件管道方式读取和NIO内存映射方式读取三种读取文件方式。我写了一个demo利用这三种方式分别读取一个11G的txt文件，看看三种方式读取文件的时间消耗、内存消耗等情况以及相关实现原理。</p>
+        <p><strong>序言：</strong><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;最近正在优化一个离线数据处理系统，其中数据文件的读取速度是一个需要重点优化的模块，正因此我也顺便重新回顾了java读取文件的几中方式，以及其实现原理和性能对比。<br><a id="more"></a><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们都知道，利用java读取文件可以使用IO包或者NIO包下相应的一些类去完成操作，主要有传统IO字节流读取、NIO文件管道方式读取和NIO内存映射方式读取三种读取文件方式。我写了一个demo利用这三种方式分别读取一个11G的txt文件，看看三种方式读取文件的时间消耗、内存消耗等情况以及相关实现原理。</p>
 <p><strong>1、IO字节流读取</strong></p>
 <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;代码如下：</p>
 <div align="center"><br><img src="https://smart1993.github.io/imgs/2016-12-11_1.png" alt="image"><br></div>
