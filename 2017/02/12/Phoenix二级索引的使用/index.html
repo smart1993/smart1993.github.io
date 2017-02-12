@@ -95,7 +95,7 @@
 <meta property="og:image" content="https://smart1993.github.io/imgs/2017/2/12/3.png">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2017/2/12/4.png">
 <meta property="og:image" content="https://smart1993.github.io/imgs/2017/2/12/5.png">
-<meta property="og:updated_time" content="2017-02-12T13:48:34.000Z">
+<meta property="og:updated_time" content="2017-02-12T14:05:43.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Phoenix二级索引的使用">
 <meta name="twitter:description" content="序言：&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;&amp;#160;Apache Phoenix 是一个构建在HBase上的SQL中间层，完全使用Java编写。Phoenix能够将标准的SQL语句转化为HBase的scan、get、put等操作，并以此提供了一套JDBC接口，所以通过Phoenix我们可以以JDBC的方式访问和操作HBase。Phoenix只是一个中间层，底层">
@@ -299,7 +299,7 @@
             <span class="post-meta-item-icon">
               <i class="fa fa-calendar-check-o"></i>
             </span>
-            <time title="Post modified" itemprop="dateModified" datetime="2017-02-12T21:48:34+08:00">
+            <time title="Post modified" itemprop="dateModified" datetime="2017-02-12T22:05:43+08:00">
               2017-02-12
             </time>
             
@@ -331,14 +331,16 @@
       
 
       
-        <p><strong>序言：</strong><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;Apache Phoenix 是一个构建在HBase上的SQL中间层，完全使用Java编写。Phoenix能够将标准的SQL语句转化为HBase的scan、get、put等操作，并以此提供了一套JDBC接口，所以通过Phoenix我们可以以JDBC的方式访问和操作HBase。Phoenix只是一个中间层，底层的查询操作还是通过HBase API实现，而HBase的查询只有RowKey这一个索引，所以Phoenix自己实现了一套二级索引机制，使查询性能得到了一定的优化。这篇文章简单介绍一下Phoenix二级索引的基本用法、实现原理以及一些注意点。<br><a id="more"></a><br><strong>二级索引的基本用法</strong><br>我们先创建一张测试表my_test：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">CREATE TABLE IF NOT EXISTS my_test(</div><div class="line">		ID VARCHAR PRIMARY KEY,</div><div class="line">		INFO.NAME VARCHAR,</div><div class="line">		INFO.ADDRESS VARCHAR,</div><div class="line">		INFO.CITY VARCHAR,</div><div class="line">		INFO.PHONE VARCHAR</div><div class="line">);</div></pre></td></tr></table></figure></p>
+        <p><strong>序言：</strong><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;Apache Phoenix 是一个构建在HBase上的SQL中间层，完全使用Java编写。Phoenix能够将标准的SQL语句转化为HBase的scan、get、put等操作，并以此提供了一套JDBC接口，所以通过Phoenix我们可以以JDBC的方式访问和操作HBase。Phoenix只是一个中间层，底层的查询操作还是通过HBase API实现，而HBase的查询只有RowKey这一个索引，所以Phoenix自己实现了一套二级索引机制，使查询性能得到了一定的优化。这篇文章简单介绍一下Phoenix二级索引的基本用法、实现原理以及一些注意点。<br><a id="more"></a></p>
+<h3 id="二级索引的基本用法"><a href="#二级索引的基本用法" class="headerlink" title="二级索引的基本用法"></a>二级索引的基本用法</h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们先在Phoenix内创建一张测试表my_test，建表语句如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">CREATE TABLE IF NOT EXISTS my_test(</div><div class="line">		ID VARCHAR PRIMARY KEY,</div><div class="line">		INFO.NAME VARCHAR,</div><div class="line">		INFO.ADDRESS VARCHAR,</div><div class="line">		INFO.CITY VARCHAR,</div><div class="line">		INFO.PHONE VARCHAR);</div></pre></td></tr></table></figure></p>
 <p>然后插入一些测试数据，如下：</p>
-<p><div align="center"><br><img src="https://smart1993.github.io/imgs/2017/2/12/1.png" alt="image"><br></div><br>我们再看一下HBase中数据的格式：</p>
-<p><div align="center"><br><img src="https://smart1993.github.io/imgs/2017/2/12/2.png" alt="image"><br></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;可以看到ID是RowKey，所以目前只有ID列有索引(RowKey索引)。此时如果我们要通过其他字段进行条件查询，就不得不进行FULL SCAN。我们可以为这张表建立相应的索引表来提高查询。一般我们会为高频的查询字段建立索引，比如这张表里的NAME和PHONE字段，我们现在为NAME和PHONE字段创建索引表my_index_test，创建语句如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">CREATE INDEX my_index_test ON my_test (INFO.NAME,INFO.PHONE) INCLUDE (INFO.ADDRESS,INFO.CITY)</div></pre></td></tr></table></figure></p>
-<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;执行以后Phoenix会多一张名为my_index_test的索引表，索引表的字段为原表主键+索引字段+INCLUDE内的字段，并且索引表在HBase内也会有相应的同名的数据表，这张HBase索引表的RowKey为NAME和PHONE的组合。接下来我们的查询语句的WHERE条件如果有NAME或PHONE，Phoenix就会去HBase的索引表内查询数据，而不是去原数据表，因为现在可以将where条件内两个字段的值作为RowKey去查询了。我们可以在Phoenix内执行explain看一下执行计划：</p>
-<p><div align="center"><br><img src="https://smart1993.github.io/imgs/2017/2/12/3.png" alt="image"><br></div><br>可以看到这里是RANGE SCAN而不是FULL SCAN了。另外，如果查询字段不是索引表的字段，执行计划还是去原表查询数据的。<br><strong>二级索引的限制</strong><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们前面为NAME和PHONE两个字段建立了索引表，但是当索引字段有多列时会有一些限制需要注意。比如，WHERE条件里不包含创建索引语句里的第一个字段(这里是NAME)时，我们看一下这种情况的执行计划：</p>
-<p><div align="center"><br><img src="https://smart1993.github.io/imgs/2017/2/12/4.png" alt="image"><br></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这里where语句内只有phone字段，查询虽然还是去索引表MY_INDEX_TEST查询，但是是FULL SCAN。这个限制和HBase的RowKey设计有关。MY_INDEX_TEST这张表的RowKey是NAME+PHONE组成，HBase的rowkey查询可以根据rowkey的前缀来查询的，此时的查询效率也很高，这里的前缀是NAME字段，所以如果只有PHONE字段，在HBae里查询MY_INDEX_TEST表时，不会根据RowKey查询，而是全表扫描。还有or、like等情况如下所示：</p>
-<p><div align="center"><br><img src="https://smart1993.github.io/imgs/2017/2/12/5.png" alt="image"><br></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;当然我们可以分别为NAME和PHONE字段建立各自的索引表。所以在实际应用中，我们需要根据业务的查询逻辑，制定合理的二级索引表设计。不过需要注意的是，过多的索引表，会占据一定的存储空间，并且在大批量的数据load过程中，数据除了需要load进原表，还需要load进原表对应的所有索引表，索引表过多会导致load的过程变得缓慢。</p>
+<p><div align="center"><img src="https://smart1993.github.io/imgs/2017/2/12/1.png" alt="image"></div><br>我们再看一下HBase中数据的格式：</p>
+<p><div align="center"><img src="https://smart1993.github.io/imgs/2017/2/12/2.png" alt="image"></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;可以看到ID是RowKey，所以目前只有ID列有索引(RowKey索引)。此时如果我们要通过其他字段进行条件查询，就不得不进行FULL SCAN,在大数据量情况下，HBase的FULL SCAN的性能是很差的。所以我们需要为这张表建立相应的索引表来提高查询。一般我们会为高频的查询字段建立索引，比如这张表里的NAME和PHONE字段，我们现在为NAME和PHONE字段创建索引表my_index_test，创建语句如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">CREATE INDEX my_index_test ON my_test (INFO.NAME,INFO.PHONE) INCLUDE (INFO.ADDRESS,INFO.CITY)</div></pre></td></tr></table></figure></p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;执行以后Phoenix会有一张名为my_index_test的索引表，索引表的字段为原表主键+索引字段+INCLUDE内的字段，并且索引表在HBase内也会有相应的同名的数据表，这张HBase索引表的RowKey为NAME和PHONE的组合。接下来我们的查询语句的WHERE条件如果有NAME或PHONE，Phoenix就会去HBase的索引表内查询数据，而不是去原数据表，因为现在可以将where条件内两个字段的值作为RowKey去查询了。我们可以在Phoenix内执行explain看一下执行计划：</p>
+<p><div align="center"><img src="https://smart1993.github.io/imgs/2017/2/12/3.png" alt="image"></div><br>可以看到这里是RANGE SCAN而不是FULL SCAN了。另外，如果查询字段不是索引表的字段，执行计划还是去原表查询数据的。</p>
+<h3 id="二级索引的限制"><a href="#二级索引的限制" class="headerlink" title="二级索引的限制"></a>二级索引的限制</h3><p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;我们前面为NAME和PHONE两个字段建立了索引表，但是当索引字段有多列时会有一些限制需要注意。比如，WHERE条件里不包含创建索引语句里的第一个字段(这里是NAME)时，我们看一下这种情况的执行计划：</p>
+<p><div align="center"><img src="https://smart1993.github.io/imgs/2017/2/12/4.png" alt="image"></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;这里where语句内只有phone字段，查询虽然还是去索引表MY_INDEX_TEST查询，但是是FULL SCAN。这个限制和HBase的RowKey设计有关。MY_INDEX_TEST这张表的RowKey是NAME+PHONE组成，HBase的rowkey查询可以根据rowkey的前缀来查询的，此时的查询效率也很高，这里的前缀是NAME字段，所以如果只有PHONE字段，在HBae里查询MY_INDEX_TEST表时，不会根据RowKey查询，而是全表扫描。还有or、like等情况如下所示：</p>
+<p><div align="center"><img src="https://smart1993.github.io/imgs/2017/2/12/5.png" alt="image"></div><br>&#160;&#160;&#160;&#160;&#160;&#160;&#160;当然我们可以分别为NAME和PHONE字段建立各自的索引表。所以在实际应用中，我们需要根据业务的查询逻辑，制定合理的二级索引表设计。不过需要注意的是，过多的索引表，会占据一定的存储空间，并且在大批量的数据load过程中，数据除了需要load进原表，还需要load进原表对应的所有索引表，索引表过多会导致load的过程变得缓慢。</p>
 
       
     </div>
@@ -426,8 +428,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview sidebar-panel sidebar-panel-active">
+      <section class="site-overview sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/images/avatar.png"
@@ -480,6 +491,22 @@
 
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#二级索引的基本用法"><span class="nav-number">1.</span> <span class="nav-text">二级索引的基本用法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#二级索引的限制"><span class="nav-number">2.</span> <span class="nav-text">二级索引的限制</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
     </div>
